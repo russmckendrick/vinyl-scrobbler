@@ -33,6 +33,8 @@ class VinylScrobbler(rumps.App):
         self.scrobble_timer = None
         self.lastfm_config = None
         self.discogs_config = None
+        self.timer_thread = None
+        self.stop_timer = False
         
         # Initialize the app with the icon
         super(VinylScrobbler, self).__init__("♫   ", quit_button=None)
@@ -54,6 +56,39 @@ class VinylScrobbler(rumps.App):
             self.logger.error(f"Initialization error: {str(e)}")
             rumps.alert("Initialization Error", str(e))
             sys.exit(1)
+
+    def update_title_with_timer(self, duration_seconds: int):
+        """Update the status bar title with remaining time"""
+        start_time = time.time()
+        self.stop_timer = False
+        
+        def timer_loop():
+            while not self.stop_timer:
+                try:
+                    elapsed_seconds = int(time.time() - start_time)
+                    remaining_seconds = max(0, duration_seconds - elapsed_seconds)
+                    
+                    if remaining_seconds == 0:
+                        break
+                    
+                    # Format remaining time as MM:SS
+                    minutes = remaining_seconds // 60
+                    seconds = remaining_seconds % 60
+                    time_str = f"{minutes:02d}:{seconds:02d}"
+                    
+                    current_track = self.tracks[self.current_track_index]
+                    # Update title with track name and remaining time
+                    self.title = f"♫   {current_track.title} ({time_str})"
+                    
+                    time.sleep(1)
+                except Exception as e:
+                    self.logger.error(f"Error in timer loop: {str(e)}")
+                    break
+        
+        # Start timer in a new thread
+        self.timer_thread = threading.Thread(target=timer_loop)
+        self.timer_thread.daemon = True
+        self.timer_thread.start()
             
     def _setup_logging(self) -> logging.Logger:
         """Setup logging configuration"""
@@ -391,7 +426,6 @@ class VinylScrobbler(rumps.App):
         """Handle track selection from menu"""
         try:
             # Extract track position from menu item title
-            # Format is like "A1. Track Title (3:30)" or "1. Track Title (3:30)"
             position = sender.title.split('.')[0].strip()
             
             # Find the track index by matching position
@@ -410,7 +444,7 @@ class VinylScrobbler(rumps.App):
                 # Set new track
                 self.current_track_index = track_index
                 
-                # Update the title with current track
+                # Update the title with current track (without timer since not playing)
                 self.title = f"♫   {self.tracks[self.current_track_index].title}"
                 
                 self.logger.info(f"Selected track: {position} - {self.tracks[track_index].title}")
@@ -458,8 +492,9 @@ class VinylScrobbler(rumps.App):
             )
             self.scrobble_timer.start()
             
-            # Update status bar title
-            self.title = f"♫   {current_track.title}"
+            # Start the timer display
+            self.update_title_with_timer(current_track.duration_seconds)
+            
         except Exception as e:
             self.logger.error(f"Error starting playback: {str(e)}")
             self.is_playing = False
@@ -471,6 +506,12 @@ class VinylScrobbler(rumps.App):
             self.is_playing = False
             if self.scrobble_timer:
                 self.scrobble_timer.cancel()
+            
+            # Stop the timer
+            self.stop_timer = True
+            if self.timer_thread and self.timer_thread.is_alive():
+                self.timer_thread.join(timeout=1)
+            
             self.title = "♫"
         except Exception as e:
             self.logger.error(f"Error stopping playback: {str(e)}")
@@ -550,6 +591,11 @@ class VinylScrobbler(rumps.App):
             # Cancel any pending timers
             if self.scrobble_timer:
                 self.scrobble_timer.cancel()
+            
+            # Ensure timer thread is stopped
+            self.stop_timer = True
+            if self.timer_thread and self.timer_thread.is_alive():
+                self.timer_thread.join(timeout=1)
             
             # Log the quit
             self.logger.info("Application shutting down cleanly")
