@@ -1,0 +1,7 @@
+rumps
+pylast
+discogs-client
+requests
+py2app
+logging
+getpass
