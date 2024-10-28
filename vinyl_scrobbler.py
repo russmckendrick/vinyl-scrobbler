@@ -184,6 +184,54 @@ class VinylScrobbler(rumps.App):
             self.logger.error(f"Error loading configuration: {str(e)}")
             raise Exception(f"Failed to load configuration: {str(e)}")
 
+    def get_track_duration_from_lastfm(self, artist: str, title: str) -> tuple[str, int]:
+        """
+        Fetch track duration from Last.fm.
+        Returns a tuple of (duration_string, duration_seconds)
+        """
+        try:
+            self.logger.info(f"Fetching duration from Last.fm for: {artist} - {title}")
+            track = self.network.get_track(artist, title)
+            
+            # Get track duration using the proper Track method
+            duration_seconds = track.get_duration()
+            if duration_seconds and duration_seconds > 0:
+                duration_seconds = duration_seconds // 1000  # Convert from ms to seconds
+                minutes = duration_seconds // 60
+                seconds = duration_seconds % 60
+                duration_string = f"{minutes}:{seconds:02d}"
+                
+                self.logger.info(f"Found duration on Last.fm: {duration_string}")
+                return duration_string, duration_seconds
+                    
+            raise ValueError("No valid duration found on Last.fm")
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to get duration from Last.fm: {str(e)}")
+            raise
+
+    def get_track_duration(self, track, artist_name: str) -> tuple[str, int]:
+        """
+        Get track duration, trying Discogs first then falling back to Last.fm
+        Returns a tuple of (duration_string, duration_seconds)
+        """
+        # First try Discogs duration
+        if track.duration and track.duration.strip() != '':
+            duration = track.duration
+            duration_parts = duration.split(':')
+            duration_seconds = sum(int(x) * 60**i 
+                                for i, x in enumerate(reversed(duration_parts)))
+            return duration, duration_seconds
+            
+        # If no Discogs duration, try Last.fm
+        try:
+            self.logger.info(f"No Discogs duration for {track.title}, trying Last.fm...")
+            return self.get_track_duration_from_lastfm(artist_name, track.title)
+        except Exception as e:
+            self.logger.warning(f"Could not get duration from Last.fm: {str(e)}")
+            # Fall back to default duration
+            self.logger.warning(f"Using default duration for track {track.position}")
+            return '3:30', 210
 
     def setup_logging(self):
         """Setup logging configuration"""
@@ -339,7 +387,7 @@ class VinylScrobbler(rumps.App):
                     None,  # Separator
                     tracks_menu,
                     None,  # Separator
-                    rumps.MenuItem("Quit", callback=self.clean_quit)  # Add quit option back
+                    rumps.MenuItem("Quit", callback=self.clean_quit)
                 ]
                 
                 # Update our references
@@ -348,7 +396,7 @@ class VinylScrobbler(rumps.App):
                 self.next_track_button = next_track_button
                 self.tracks_menu = tracks_menu
                 
-                # Add album info header without None
+                # Add album info header
                 artist_name = release.artists[0].name if release.artists else "Various Artists"
                 album_title = release.title
                 
@@ -362,16 +410,8 @@ class VinylScrobbler(rumps.App):
                 
                 for track in release.tracklist:
                     try:
-                        # Handle missing duration
-                        if not track.duration or track.duration.strip() == '':
-                            duration = '3:30'
-                            duration_seconds = 210
-                            self.logger.warning(f"No duration for track {track.position}. Using default: 3:30")
-                        else:
-                            duration = track.duration
-                            duration_parts = duration.split(':')
-                            duration_seconds = sum(int(x) * 60**i 
-                                                for i, x in enumerate(reversed(duration_parts)))
+                        # Get duration using the new method
+                        duration, duration_seconds = self.get_track_duration(track, artist_name)
                         
                         track_obj = Track(
                             position=track.position,
