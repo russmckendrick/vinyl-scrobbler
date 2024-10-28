@@ -572,7 +572,8 @@ class VinylScrobbler(rumps.App):
                 artist=track.artist,
                 title=track.title,
                 timestamp=timestamp,
-                album=track.album
+                album=track.album,
+                duration=track.duration_seconds
             )
             self.logger.info(f"Scrobbled: {track.artist} - {track.title}")
         except Exception as e:
