@@ -1,5 +1,8 @@
 # Vinyl Scrobbler
 
+> [!CAUTION]
+> This is a personal project, its probably not for you and provided as is. Run at your own risk.
+
 A macOS menu bar application that lets you scrobble your vinyl records to Last.fm using Discogs metadata.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
