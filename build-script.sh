@@ -10,6 +10,7 @@ echo "🧹 Cleaning previous builds..."
 rm -rf build dist
 rm -rf *.pyc
 rm -rf venv
+test -f VinylScrobbler.dmg && rm VinylScrobbler.dmg
 
 # Check if Python 3.11 is installed via Homebrew
 PYTHON_PATH="/opt/homebrew/opt/python@3.11/bin/python3.11"
@@ -90,7 +91,9 @@ echo "✅ Build complete!"
 echo "📂 The application is in the dist folder"
 echo ""
 
-test -f VinylScrobbler.dmg && rm VinylScrobbler.dmg
+echo "📀 Creating DMG..."
+echo ""
+
 create-dmg \
   --volname "Vinyl Scrobbler" \
   --volicon "icon.icns" \
@@ -102,6 +105,9 @@ create-dmg \
   --app-drop-link 600 185 \
   "VinylScrobbler.dmg" \
   "dist/"
+
+echo "✅ DMG complete!"
+echo ""
 
 echo "To test the application:"
 echo "1. Open the dist folder"
