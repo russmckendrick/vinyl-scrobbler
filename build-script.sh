@@ -89,6 +89,20 @@ otool -L "dist/Vinyl Scrobbler.app/Contents/MacOS/Vinyl Scrobbler"
 echo "✅ Build complete!"
 echo "📂 The application is in the dist folder"
 echo ""
+
+test -f VinylScrobbler.dmg && rm VinylScrobbler.dmg
+create-dmg \
+  --volname "Vinyl Scrobbler" \
+  --volicon "icon.icns" \
+  --window-pos 200 120 \
+  --window-size 800 400 \
+  --icon-size 100 \
+  --icon "Vinyl Scrobbler.app" 200 190 \
+  --hide-extension "Vinyl Scrobbler.app" \
+  --app-drop-link 600 185 \
+  "VinylScrobbler.dmg" \
+  "dist/"
+
 echo "To test the application:"
 echo "1. Open the dist folder"
 echo "2. Right-click 'Vinyl Scrobbler.app' and select Open"
