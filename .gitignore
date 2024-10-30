@@ -5,3 +5,4 @@ venv
 repopack-output.txt
 repopack.config.json
 .repopackignore
+.eggs
