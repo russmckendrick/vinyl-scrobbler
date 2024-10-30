@@ -77,10 +77,9 @@ class VinylScrobbler(rumps.App):
                     time_str = f"{minutes:02d}:{seconds:02d}"
                     
                     current_track = self.tracks[self.current_track_index]
-                    # Update title with track name and remaining time
-                    self.title = f"♫   {current_track.title} ({time_str})"
+                    self.title = f"▷  {current_track.title}"
                     
-                    time.sleep(1)
+                    time.sleep(5)
                 except Exception as e:
                     self.logger.error(f"Error in timer loop: {str(e)}")
                     break
