@@ -2,3 +2,6 @@ build
 dist
 *.pyc
 venv
+repopack-output.txt
+repopack.config.json
+.repopackignore
