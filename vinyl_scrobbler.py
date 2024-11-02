@@ -520,6 +520,13 @@ class VinylScrobbler(rumps.App):
                 
             self.is_playing = True
             current_track = self.tracks[self.current_track_index]
+
+            # Show notification for track change
+            rumps.notification(
+                title="Now Playing",
+                subtitle=current_track.artist,
+                message=current_track.title
+            )
             
             # Update now playing
             self.update_now_playing(current_track)

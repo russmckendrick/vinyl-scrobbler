@@ -17,8 +17,8 @@ OPTIONS = {
         'CFBundleName': 'Vinyl Scrobbler',
         'CFBundleDisplayName': 'Vinyl Scrobbler',
         'CFBundleIdentifier': 'com.vinylscrobbler.app',
-        'CFBundleVersion': '1.0.0',
-        'CFBundleShortVersionString': '1.0.0',
+        'CFBundleVersion': '0.0.2',
+        'CFBundleShortVersionString': '0.0.2',
         'NSHighResolutionCapable': True,
     },
     'packages': [
