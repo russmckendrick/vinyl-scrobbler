@@ -523,9 +523,10 @@ class VinylScrobbler(rumps.App):
 
             # Show notification for track change
             rumps.notification(
-                title="Now Playing",
+                title="🎧 Now Playing",
                 subtitle=current_track.artist,
-                message=current_track.title
+                message=current_track.title,
+                sound=False
             )
             
             # Update now playing
