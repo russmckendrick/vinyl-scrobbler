@@ -3,126 +3,102 @@
 > [!CAUTION]
 > This is a personal project, its probably not for you and provided as is. Run at your own risk.
 
-A macOS menu bar application that lets you scrobble your vinyl records to Last.fm using Discogs metadata.
+A simple macOS application to scrobble vinyl records to Last.fm.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
-![Python](https://img.shields.io/badge/python-%3E%3D3.9-green.svg)
+## About
+
+Vinyl Scrobbler is a menu bar application that allows you to scrobble your vinyl records to Last.fm using Discogs as the source for track information. Simply search for your album using a Discogs release ID or URL, start playing, and let the app handle the scrobbling.
 
 ## Features
 
-- 🎵 Scrobble vinyl records to Last.fm
-- 💿 Fetch album data from Discogs
-- ⏱️ Real-time playback tracking
-- 🔍 Search by Discogs Release ID or URL
-- 📊 Automatic track duration detection
-- 🎨 Clean macOS menu bar interface
-- 📝 Detailed activity logging
+- Menu bar application for macOS
+- Search albums by Discogs release ID or URL
+- Automatic track duration fetching from both Discogs and Last.fm
+- Real-time "Now Playing" status
+- Track-by-track scrobbling
+- Visual countdown timer for each track
+- Support for multi-artist releases
+- Automatic handling of Discogs artist name variations (e.g., disambiguation numbers)
 
-## Prerequisites
+## Requirements
 
 - macOS
-- Python 3.9 or higher
+- Python 3.11 (installed via Homebrew)
 - Last.fm account
 - Discogs account
+- create-dmg (for building DMG)
 
 ## Installation
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/vinyl-scrobbler.git
-cd vinyl-scrobbler
-```
+### From DMG
 
-2. Create a virtual environment and activate it:
-```bash
-python -m venv venv
-source venv/bin/activate  # On macOS/Linux
-```
+1. Download the latest release from the [releases page](https://github.com/russmckendrick/vinyl-scrobbler/releases)
+2. Mount the DMG and drag Vinyl Scrobbler to your Applications folder
+3. Configure your Last.fm and Discogs credentials a per the Configuration section below
 
-3. Install the required packages:
-```bash
-pip install -r requirements.txt
-```
+### Configuration
 
-4. Build the application:
-```bash
-./build-clean.sh  # Clean any previous builds
-python setup.py py2app
-```
+On first run, the app will create a configuration file at `~/.vinyl-scrobbler-config.json`. You'll need to edit this file to add your credentials:
 
-5. Move the built application to your Applications folder:
-```bash
-cp -r dist/Vinyl\ Scrobbler.app /Applications/
-```
-
-## Configuration
-
-1. Launch the application. On first run, it will create a configuration file at:
-```
-~/.vinyl-scrobbler-config.json
-```
-
-2. Edit the configuration file with your credentials:
 ```json
 {
-    "lastfm_api_key": "your_lastfm_api_key",
-    "lastfm_api_secret": "your_lastfm_api_secret",
-    "lastfm_username": "your_lastfm_username",
-    "lastfm_password_hash": "your_lastfm_password_hash",
-    "discogs_token": "your_discogs_token",
-    "discogs_username": "your_discogs_username"
+    "lastfm_api_key": "",
+    "lastfm_api_secret": "",
+    "lastfm_username": "",
+    "lastfm_password_hash": "",
+    "discogs_token": "",
+    "discogs_username": ""
 }
 ```
 
-### Getting Your Credentials
+#### Getting Your Credentials
 
-#### Last.fm
-1. Create an API account at: https://www.last.fm/api/account/create
-2. Get your API key and secret
-3. Generate your password hash using MD5 encryption of your Last.fm password
+1. **Last.fm API Key and Secret**:
+   - Create an API account at [Last.fm API](https://www.last.fm/api/account/create)
+   - Copy the API Key and Shared Secret
 
-#### Discogs
-1. Generate a personal access token at: https://www.discogs.com/settings/developers
-2. Copy your token to the configuration file
+2. **Last.fm Password Hash**:
+   - Run the included script:
+     ```bash
+     python generate_lastfm_password_hash.py
+     ```
+   - Enter your Last.fm password when prompted
+   - Copy the generated hash
+
+3. **Discogs Token**:
+   - Go to your [Discogs Developer Settings](https://www.discogs.com/settings/developers)
+   - Generate a new token
 
 ## Usage
 
-1. Launch the application
-2. Click the menu bar icon (♫)
-3. Select "Search Album"
-4. Enter a Discogs Release ID or URL
-5. Click "Start Playing" when ready
-6. Use "Next Track" to manually advance tracks
-
-The app will automatically:
-- Update your "Now Playing" status on Last.fm
-- Scrobble tracks after they finish playing
-- Show remaining time for the current track
-- Move to the next track when the current one finishes
+1. Click the "♫" menu bar icon
+2. Select "Search Album"
+3. Enter a Discogs release ID or URL
+4. Click "Start Playing" when you start the record
+5. Use "Next Track" to manually advance tracks if needed
 
 ## Logs
 
-Application logs are stored at:
-```
-~/.vinyl-scrobbler/vinyl_scrobbler.log
-```
+Logs are stored at `~/.vinyl-scrobbler/vinyl_scrobbler.log`
 
 ## Building from Source
 
-The application uses py2app for building. To create a fresh build:
+1. Install Python 3.11 and `create-dmg` via Homebrew:
+   ```bash
+   brew install python@3.11
+   brew install create-dmg
+   ```
 
-1. Clean previous builds:
-```bash
-./build-clean.sh
-```
+2. Clone the repository:
+   ```bash
+   git clone https://github.com/russmckendrick/vinyl-scrobbler.git
+   cd vinyl-scrobbler
+   ```
 
-2. Build the application:
-```bash
-python setup.py py2app
-```
-
-The built application will be available in the `dist` directory.
+3. Run the build script:
+   ```bash
+   ./build.sh
+   ```
 
 ## Contributing
 
@@ -130,14 +106,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License
 
-## Acknowledgments
+## Author
 
-- [rumps](https://github.com/jaredks/rumps) for the macOS menu bar interface
-- [pylast](https://github.com/pylast/pylast) for Last.fm integration
-- [python-discogs-client](https://github.com/discogs/discogs_client) for Discogs integration
+Created by Russ McKendrick
 
-## Support
-
-If you encounter any issues or have questions, please file an issue on the GitHub repository.
+GitHub: [https://github.com/russmckendrick/vinyl-scrobbler](https://github.com/russmckendrick/vinyl-scrobbler)
