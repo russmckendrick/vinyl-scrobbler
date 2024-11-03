@@ -1,12 +1,17 @@
-"""
-Setup script for building Vinyl Scrobbler with complete dependency handling
-"""
-from setuptools import setup
+import json
 import os
 import sys
+from setuptools import setup
+
+def get_version():
+    with open('about_config.json', 'r') as f:
+        about_config = json.load(f)
+    return about_config.get('version', '0.0.1')  # Default to '0.0.1' if version is not found
+
+VERSION = get_version()
 
 APP = ['vinyl_scrobbler.py']
-DATA_FILES = []
+DATA_FILES = ['about_config.json']
 
 OPTIONS = {
     'argv_emulation': False,
@@ -17,8 +22,8 @@ OPTIONS = {
         'CFBundleName': 'Vinyl Scrobbler',
         'CFBundleDisplayName': 'Vinyl Scrobbler',
         'CFBundleIdentifier': 'com.vinylscrobbler.app',
-        'CFBundleVersion': '0.0.3',
-        'CFBundleShortVersionString': '0.0.3',
+        'CFBundleVersion': VERSION,
+        'CFBundleShortVersionString': VERSION,
         'NSHighResolutionCapable': True,
     },
     'packages': [
@@ -74,6 +79,7 @@ OPTIONS = {
 
 setup(
     name='Vinyl Scrobbler',
+    version=VERSION,
     app=APP,
     data_files=DATA_FILES,
     options={'py2app': OPTIONS},
@@ -91,5 +97,8 @@ setup(
         'idna>=2.5',
         'six>=1.5',
     ],
+    package_data={
+        '': ['about_config.json'],
+    },
     python_requires='>=3.9',
 )

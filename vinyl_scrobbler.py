@@ -36,6 +36,9 @@ class VinylScrobbler(rumps.App):
         self.timer_thread = None
         self.stop_timer = False
         
+        # Load about configuration
+        self.about_config = self.load_about_config()
+        
         # Initialize the app with the icon
         super(VinylScrobbler, self).__init__("♫   ", quit_button=None)
         
@@ -115,6 +118,43 @@ class VinylScrobbler(rumps.App):
             print(f"Failed to setup logging: {str(e)}")
             sys.exit(1)
 
+    def load_about_config(self):
+        try:
+            # Get the directory of the current executable
+            if getattr(sys, 'frozen', False):
+                # If the application is run as a bundle, use the sys.executable path
+                application_path = os.path.dirname(sys.executable)
+                # Move up to the Contents directory and then into Resources
+                config_path = os.path.join(os.path.dirname(application_path), 'Resources', 'about_config.json')
+            else:
+                # If run from a Python interpreter, use the script's directory
+                application_path = os.path.dirname(os.path.abspath(__file__))
+                config_path = os.path.join(application_path, 'about_config.json')
+            
+            self.logger.info(f"Attempting to load about_config.json from: {config_path}")
+            
+            # Try UTF-8 encoding first
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                self.logger.info("Successfully loaded about_config.json with UTF-8 encoding")
+                return config
+            except UnicodeDecodeError:
+                # If UTF-8 fails, try with ISO-8859-1 encoding
+                with open(config_path, 'r', encoding='iso-8859-1') as f:
+                    config = json.load(f)
+                self.logger.info("Successfully loaded about_config.json with ISO-8859-1 encoding")
+                return config
+        except json.JSONDecodeError as json_err:
+            self.logger.error(f"JSON decoding error: {str(json_err)}")
+            # Log the content of the file for debugging
+            with open(config_path, 'rb') as f:
+                content = f.read()
+            self.logger.error(f"File content (hex): {content.hex()}")
+            return {}
+        except Exception as e:
+            self.logger.error(f"Failed to load about config: {str(e)}")
+            return {}
     def load_config(self):
         """Load configuration from JSON file in user's home directory"""
         config_file = os.path.expanduser('~/.vinyl-scrobbler-config.json')
@@ -334,10 +374,11 @@ class VinylScrobbler(rumps.App):
             self.logger.info("Setting up default menu...")
             
             # Create menu items
-            self.search_button = rumps.MenuItem("Search Album")
-            self.play_pause_button = rumps.MenuItem("Start Playing")
-            self.next_track_button = rumps.MenuItem("Next Track")
+            self.search_button = rumps.MenuItem("Search Album", callback=self.search_album)
+            self.play_pause_button = rumps.MenuItem("Start Playing", callback=self.toggle_playback)
+            self.next_track_button = rumps.MenuItem("Next Track", callback=self.next_track)
             self.tracks_menu = rumps.MenuItem("Tracks")
+            self.about_button = rumps.MenuItem("About", callback=self.show_about)
             
             # Set the menu
             self.menu = [
@@ -347,9 +388,11 @@ class VinylScrobbler(rumps.App):
                 None,  # Separator
                 self.tracks_menu,
                 None,  # Separator
+                self.about_button,
+                None,  # Separator
                 rumps.MenuItem("Quit", callback=self.clean_quit)  # Custom quit button
             ]
-                        
+            
             self.logger.info("Default menu setup complete")
             
         except Exception as e:
@@ -372,10 +415,11 @@ class VinylScrobbler(rumps.App):
                 self.logger.info("Resetting menu...")
                 
                 # Create fresh instances of all menu items
-                search_button = rumps.MenuItem("Search Album", callback=self.search_button.callback)
-                play_pause_button = rumps.MenuItem(self.play_pause_button.title, callback=self.play_pause_button.callback)
-                next_track_button = rumps.MenuItem("Next Track", callback=self.next_track_button.callback)
+                search_button = rumps.MenuItem("Search Album", callback=self.search_album)
+                play_pause_button = rumps.MenuItem("Start Playing", callback=self.toggle_playback)
+                next_track_button = rumps.MenuItem("Next Track", callback=self.next_track)
                 tracks_menu = rumps.MenuItem("Tracks")
+                about_button = rumps.MenuItem("About", callback=self.show_about)
                 
                 # Clear the menu and add fresh items
                 self.menu.clear()
@@ -386,6 +430,8 @@ class VinylScrobbler(rumps.App):
                     None,  # Separator
                     tracks_menu,
                     None,  # Separator
+                    about_button,
+                    None,  # Separator
                     rumps.MenuItem("Quit", callback=self.clean_quit)
                 ]
                 
@@ -394,6 +440,7 @@ class VinylScrobbler(rumps.App):
                 self.play_pause_button = play_pause_button
                 self.next_track_button = next_track_button
                 self.tracks_menu = tracks_menu
+                self.about_button = about_button
                 
                 # Add album info header
                 artist_name = release.artists[0].name if release.artists else "Various Artists"
@@ -523,7 +570,7 @@ class VinylScrobbler(rumps.App):
 
             # Show notification for track change
             rumps.notification(
-                title="🎧 Now Playing",
+                title="Now Playing",
                 subtitle=current_track.artist,
                 message=current_track.title,
                 sound=False
@@ -626,7 +673,17 @@ class VinylScrobbler(rumps.App):
         except Exception as e:
             self.logger.error(f"Failed to scrobble track: {str(e)}")
 
-    @rumps.clicked("Quit")
+    def show_about(self, _):
+        """Display information about the application"""
+        about_text = (
+            f"{self.about_config.get('app_name', 'Vinyl Scrobbler')}\n\n"
+            f"Version: {self.about_config.get('version', '1.0')}\n"
+            f"{self.about_config.get('description', '')}\n\n"
+            f"Created by: {self.about_config.get('author', '')}\n"
+            f"GitHub: {self.about_config.get('github_url', '')}\n\n"
+            f"{self.about_config.get('copyright', '')}"
+        )
+        rumps.alert(title=f"About {self.about_config.get('app_name', 'Vinyl Scrobbler')}", message=about_text)
     def clean_quit(self, _):
         """Clean up and quit the application"""
         try:
