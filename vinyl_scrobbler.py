@@ -60,6 +60,12 @@ class VinylScrobbler(rumps.App):
             rumps.alert("Initialization Error", str(e))
             sys.exit(1)
 
+    def clean_artist_name(self, artist_name: str) -> str:
+        """Clean artist name from Discogs format to match LastFM format."""
+        import re
+        cleaned_name = re.sub(r'\s*\(\d+\)\s*$', '', artist_name)
+        return cleaned_name.strip()
+
     def update_title_with_timer(self, duration_seconds: int):
         """Update the status bar title with remaining time"""
         start_time = time.time()
@@ -443,7 +449,8 @@ class VinylScrobbler(rumps.App):
                 self.about_button = about_button
                 
                 # Add album info header
-                artist_name = release.artists[0].name if release.artists else "Various Artists"
+                raw_artist_name = release.artists[0].name if release.artists else "Various Artists"
+                artist_name = self.clean_artist_name(raw_artist_name)
                 album_title = release.title
                 
                 # Create header menu item

@@ -1,6 +1,6 @@
 {
   "app_name": "Vinyl Scrobbler",
-  "version": "0.0.4-alpha",
+  "version": "0.0.5-alpha",
   "description": "A simple application to scrobble vinyl records to Last.fm",
   "author": "Russ McKendrick",
   "github_url": "https://github.com/russmckendrick/vinyl-scrobbler",

@@ -2,8 +2,7 @@ build
 dist
 *.pyc
 venv
-repopack-output.txt
-repopack.config.json
-.repopackignore
+repomix*
+.repomixignore
 .eggs
 VinylScrobbler.dmg
