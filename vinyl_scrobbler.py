@@ -35,6 +35,7 @@ class VinylScrobbler(rumps.App):
         self.discogs_config = None
         self.timer_thread = None
         self.stop_timer = False
+        self.show_notifications = True  # Default to True
         
         # Load about configuration
         self.about_config = self.load_about_config()
@@ -174,7 +175,8 @@ class VinylScrobbler(rumps.App):
                     'lastfm_username': '',
                     'lastfm_password_hash': '',
                     'discogs_token': '',
-                    'discogs_username': ''
+                    'discogs_username': '',
+                    'show_notifications': True
                 }
                 
                 # Write default config
@@ -222,6 +224,9 @@ class VinylScrobbler(rumps.App):
                 'token': config['discogs_token'],
                 'user_name': config['discogs_username']
             }
+            
+            # Load notification setting with default value
+            self.show_notifications = config.get('show_notifications', True)
             
             self.logger.info("Successfully loaded configuration")
             
@@ -575,26 +580,20 @@ class VinylScrobbler(rumps.App):
             self.is_playing = True
             current_track = self.tracks[self.current_track_index]
 
-            # Show notification for track change
-            rumps.notification(
-                title="Now Playing",
-                subtitle=current_track.artist,
-                message=current_track.title,
-                sound=False
-            )
-            
-            # Update now playing
-            self.update_now_playing(current_track)
-            
-            # Schedule scrobble
-            self.scrobble_timer = threading.Timer(
-                current_track.duration_seconds,
-                self.handle_track_end
-            )
-            self.scrobble_timer.start()
+            # Show notification only if enabled
+            if self.show_notifications:
+                rumps.notification(
+                    title="Now Playing",
+                    subtitle=current_track.artist,
+                    message=current_track.title,
+                    sound=False
+                )
             
             # Start the timer display
             self.update_title_with_timer(current_track.duration_seconds)
+            
+            # Start track timer for scrobbling
+            self.start_track_timer(current_track)
             
         except Exception as e:
             self.logger.error(f"Error starting playback: {str(e)}")
@@ -631,15 +630,11 @@ class VinylScrobbler(rumps.App):
             rumps.alert("Error", f"Failed to skip track: {str(e)}")
 
     def handle_track_end(self):
-        """Handle end of track, scrobble, and move to next"""
+        """Handle end of track and move to next"""
         try:
             if not self.is_playing:
                 return
                 
-            # Scrobble current track
-            current_track = self.tracks[self.current_track_index]
-            self.scrobble_track(current_track)
-            
             # Move to next track
             self.current_track_index += 1
             if self.current_track_index >= len(self.tracks):
@@ -653,32 +648,52 @@ class VinylScrobbler(rumps.App):
             self.logger.error(f"Error handling track end: {str(e)}")
             self.stop_playback()
 
-    def update_now_playing(self, track: Track):
-        """Update now playing status on Last.FM"""
+    def update_current_track_status(self, track: Track):
+        """Update LastFM with current playing track and handle scrobbling"""
         try:
+            # Update "now playing" status
             self.network.update_now_playing(
-                artist=track.artist,
+                artist=self.clean_artist_name(track.artist),
                 title=track.title,
-                album=track.album
-            )
-            self.logger.info(f"Updated now playing: {track.artist} - {track.title}")
-        except Exception as e:
-            self.logger.error(f"Failed to update now playing: {str(e)}")
-
-    def scrobble_track(self, track: Track):
-        """Scrobble track to Last.FM"""
-        try:
-            timestamp = int(time.time())
-            self.network.scrobble(
-                artist=track.artist,
-                title=track.title,
-                timestamp=timestamp,
                 album=track.album,
                 duration=track.duration_seconds
             )
-            self.logger.info(f"Scrobbled: {track.artist} - {track.title}")
-        except Exception as e:
-            self.logger.error(f"Failed to scrobble track: {str(e)}")
+            self.logger.info(f"Updated now playing: {track.artist} - {track.title}")
+
+            # Calculate minimum play time for scrobbling (max of 4 mins or 50% of track)
+            min_play_time = min(
+                240,  # 4 minutes in seconds
+                int(track.duration_seconds * 0.5)  # 50% of track length
+            )
+
+            # Schedule scrobble after minimum play time
+            time.sleep(min_play_time)
+            
+            if self.is_playing:  # Only scrobble if still playing
+                self.network.scrobble(
+                    artist=self.clean_artist_name(track.artist),
+                    title=track.title,
+                    timestamp=int(time.time()),
+                    album=track.album,
+                    duration=track.duration_seconds
+                )
+                self.logger.info(f"Scrobbled track: {track.artist} - {track.title}")
+        
+        except pylast.PyLastError as e:
+            self.logger.error(f"LastFM error: {str(e)}")
+
+    def start_track_timer(self, track: Track):
+        """Start timer for current track"""
+        if self.timer_thread and self.timer_thread.is_alive():
+            self.stop_timer = True
+            self.timer_thread.join()
+        
+        self.stop_timer = False
+        self.timer_thread = threading.Thread(
+            target=self.update_current_track_status,
+            args=(track,)
+        )
+        self.timer_thread.start()
 
     def show_about(self, _):
         """Display information about the application"""
@@ -691,6 +706,7 @@ class VinylScrobbler(rumps.App):
             f"{self.about_config.get('copyright', '')}"
         )
         rumps.alert(title=f"About {self.about_config.get('app_name', 'Vinyl Scrobbler')}", message=about_text)
+
     def clean_quit(self, _):
         """Clean up and quit the application"""
         try:

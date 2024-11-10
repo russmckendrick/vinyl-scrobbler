@@ -4,5 +4,6 @@
     "lastfm_username": "",
     "lastfm_password_hash": "",
     "discogs_token": "",
-    "discogs_username": ""
+    "discogs_username": "",
+    "show_notifications": true
 }

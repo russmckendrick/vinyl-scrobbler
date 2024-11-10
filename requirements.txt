@@ -3,5 +3,5 @@ pylast
 discogs-client
 requests
 py2app
-logging
-getpass
+# logging
+# getpass
