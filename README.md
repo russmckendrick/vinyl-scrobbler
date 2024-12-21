@@ -9,6 +9,8 @@ A simple macOS application to scrobble vinyl records to Last.fm.
 
 Vinyl Scrobbler is a menu bar application that allows you to scrobble your vinyl records to Last.fm using Discogs as the source for track information. Simply search for your album using a Discogs release ID or URL, start playing, and let the app handle the scrobbling.
 
+See https://www.instagram.com/reel/DCzAQBuSGUt/?igsh=eTJrY2xjd2F2OWpw for why I created it.
+
 ## Features
 
 - Menu bar application for macOS
