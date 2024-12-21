@@ -41,7 +41,7 @@ class VinylScrobbler(rumps.App):
         self.about_config = self.load_about_config()
         
         # Initialize the app with the icon
-        super(VinylScrobbler, self).__init__("♫   ", quit_button=None)
+        super(VinylScrobbler, self).__init__("♫   ", quit_button="Quit")
         
         try:
             # Load configuration
@@ -389,19 +389,19 @@ class VinylScrobbler(rumps.App):
             self.play_pause_button = rumps.MenuItem("Start Playing", callback=self.toggle_playback)
             self.next_track_button = rumps.MenuItem("Next Track", callback=self.next_track)
             self.tracks_menu = rumps.MenuItem("Tracks")
+            self.tracks_menu.add(rumps.MenuItem("No Album Loaded"))  # Add default item
             self.about_button = rumps.MenuItem("About", callback=self.show_about)
             
             # Set the menu
+            self.menu.clear()  # Clear existing menu items
             self.menu = [
                 self.search_button,
                 self.play_pause_button,
                 self.next_track_button,
-                None,  # Separator
+                None,  # Simple separator
                 self.tracks_menu,
-                None,  # Separator
-                self.about_button,
-                None,  # Separator
-                rumps.MenuItem("Quit", callback=self.clean_quit)  # Custom quit button
+                None,  # Simple separator
+                self.about_button
             ]
             
             self.logger.info("Default menu setup complete")
@@ -422,81 +422,71 @@ class VinylScrobbler(rumps.App):
                 self.stop_playback()
                 self.play_pause_button.title = "Start Playing"
             
-            try:
-                self.logger.info("Resetting menu...")
-                
-                # Create fresh instances of all menu items
-                search_button = rumps.MenuItem("Search Album", callback=self.search_album)
-                play_pause_button = rumps.MenuItem("Start Playing", callback=self.toggle_playback)
-                next_track_button = rumps.MenuItem("Next Track", callback=self.next_track)
-                tracks_menu = rumps.MenuItem("Tracks")
-                about_button = rumps.MenuItem("About", callback=self.show_about)
-                
-                # Clear the menu and add fresh items
-                self.menu.clear()
-                self.menu = [
-                    search_button,
-                    play_pause_button,
-                    next_track_button,
-                    None,  # Separator
-                    tracks_menu,
-                    None,  # Separator
-                    about_button,
-                    None,  # Separator
-                    rumps.MenuItem("Quit", callback=self.clean_quit)
-                ]
-                
-                # Update our references
-                self.search_button = search_button
-                self.play_pause_button = play_pause_button
-                self.next_track_button = next_track_button
-                self.tracks_menu = tracks_menu
-                self.about_button = about_button
-                
-                # Add album info header
-                raw_artist_name = release.artists[0].name if release.artists else "Various Artists"
-                artist_name = self.clean_artist_name(raw_artist_name)
-                album_title = release.title
-                
-                # Create header menu item
-                header = rumps.MenuItem(f"{artist_name} - {album_title}")
-                header.set_callback(None)  # Make it non-clickable
-                self.tracks_menu.add(header)
-                
-                # Add separator
-                self.tracks_menu.add(rumps.MenuItem(None))
-                
-                for track in release.tracklist:
-                    try:
-                        # Get duration using the new method
-                        duration, duration_seconds = self.get_track_duration(track, artist_name)
-                        
-                        track_obj = Track(
-                            position=track.position,
-                            title=track.title,
-                            duration=duration,
-                            duration_seconds=duration_seconds,
-                            artist=artist_name,
-                            album=album_title
-                        )
-                        self.tracks.append(track_obj)
-                        
-                        # Add track to menu
-                        track_menu_item = rumps.MenuItem(
-                            f"{track.position}. {track_obj.title} ({track_obj.duration})",
-                            callback=self.track_selected
-                        )
+            # Get artist and album info
+            raw_artist_name = release.artists[0].name if release.artists else "Various Artists"
+            artist_name = self.clean_artist_name(raw_artist_name)
+            album_title = release.title
+            
+            # Reset the tracks menu
+            self.tracks_menu.clear()
+            
+            # Add album info header
+            header = rumps.MenuItem(f"{artist_name} - {album_title}")
+            header.set_callback(None)  # Make it non-clickable
+            header.state = -1  # Gray out the header
+            self.tracks_menu.add(header)
+            
+            # Process tracks
+            for track in release.tracklist:
+                try:
+                    self.logger.info(f"Processing track: {track.title} (Position: {track.position})")
+                    
+                    # Check if it's a side name or heading
+                    is_side_name = (
+                        not track.position or  # No position
+                        track.position.strip() in ['Alpha', 'Beta', 'Gamma', 'Delta'] or  # Side names
+                        track.position.strip() == ''  # Empty position
+                    )
+                    
+                    if is_side_name:
+                        self.logger.info(f"Adding side name to menu: {track.title}")
+                        # Add a bit of spacing before side names (except the first one)
+                        if self.tracks_menu.keys() and self.tracks_menu.keys()[-1] != header.title:
+                            self.tracks_menu.add(None)  # Simple separator
+                            
+                        track_menu_item = rumps.MenuItem(f"{track.title}")  # No prefix, just the title
+                        track_menu_item.set_callback(None)  # Make it non-clickable
+                        track_menu_item.state = -1  # Gray out the menu item
                         self.tracks_menu.add(track_menu_item)
-                        
-                    except Exception as e:
-                        self.logger.error(f"Error processing track {track.position}: {str(e)}")
                         continue
-                
-                self.logger.info("Menu updated successfully")
-                
-            except Exception as e:
-                self.logger.error(f"Error updating menu: {str(e)}")
-                raise Exception(f"Failed to update menu: {str(e)}")
+                    
+                    # Get duration using the new method
+                    try:
+                        duration, duration_seconds = self.get_track_duration(track, artist_name)
+                    except Exception as e:
+                        self.logger.warning(f"Failed to get duration for {track.title}, using default: {str(e)}")
+                        duration = "3:30"
+                        duration_seconds = 210
+                    
+                    track_obj = Track(
+                        position=track.position,
+                        title=track.title,
+                        duration=duration,
+                        duration_seconds=duration_seconds,
+                        artist=artist_name,
+                        album=album_title
+                    )
+                    self.tracks.append(track_obj)
+                    
+                    # Add track to menu with consistent spacing
+                    menu_title = f"{track.position}. {track_obj.title} ({track_obj.duration})"
+                    track_menu_item = rumps.MenuItem(menu_title, callback=self.track_selected)
+                    self.tracks_menu.add(track_menu_item)
+                    self.logger.info(f"Added track to menu: {menu_title}")
+                    
+                except Exception as e:
+                    self.logger.error(f"Error processing track {track.position if track.position else track.title}: {str(e)}")
+                    continue
             
             if not self.tracks:
                 raise Exception("No valid tracks found in the release")
