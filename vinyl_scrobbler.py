@@ -294,12 +294,19 @@ class VinylScrobbler(AppKit.NSObject):
         
     def windowShouldClose_(self, sender):
         """Handle window close button"""
-        self.player_window.orderOut_(None)
+        sender.orderOut_(None)
+        # Update menu when window is closed
+        self.setup_menu()
         return True
         
     def showPlayer_(self, sender):
-        """Show the player window"""
-        self.player_window.makeKeyAndOrderFront_(None)
+        """Toggle the player window visibility"""
+        if self.player_window.isVisible():
+            self.player_window.orderOut_(None)
+        else:
+            self.player_window.makeKeyAndOrderFront_(None)
+        # Update menu to reflect new window state
+        self.setup_menu()
 
     def setup_status_bar(self):
         """Setup the status bar item and menu"""
@@ -322,29 +329,10 @@ class VinylScrobbler(AppKit.NSObject):
         while self.menu.numberOfItems() > 0:
             self.menu.removeItemAtIndex_(0)
             
-        # Add menu items
+        # Search and Tracks section
         search_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Search Album", "searchAlbum:", "")
         search_item.setTarget_(self)
         self.menu.addItem_(search_item)
-        
-        show_player = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Show Player", "showPlayer:", "")
-        show_player.setTarget_(self)
-        self.menu.addItem_(show_player)
-        
-        # Add play/pause item
-        self.play_pause_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "Start Playing", "togglePlayback:", ""
-        )
-        self.play_pause_item.setTarget_(self)
-        self.menu.addItem_(self.play_pause_item)
-        
-        next_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Next Track", "nextTrack:", "")
-        next_item.setTarget_(self)
-        self.menu.addItem_(next_item)
-        
-        prev_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Previous Track", "previousTrack:", "")
-        prev_item.setTarget_(self)
-        self.menu.addItem_(prev_item)
         
         # Add tracks submenu
         tracks_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Tracks", None, "")
@@ -354,7 +342,6 @@ class VinylScrobbler(AppKit.NSObject):
         # Populate tracks if we have an album loaded
         if hasattr(self, 'tracks') and self.tracks:
             for track in self.tracks:
-                # Format track title without duration to match screenshot
                 track_title = f"{track.position}. {track.title}"
                 track_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
                     track_title, "trackSelected:", ""
@@ -369,9 +356,46 @@ class VinylScrobbler(AppKit.NSObject):
         
         self.menu.addItem_(tracks_item)
         
-        notif_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Toggle Notifications", "toggleNotifications:", "")
+        # First separator
+        self.menu.addItem_(AppKit.NSMenuItem.separatorItem())
+        
+        # Playback controls section
+        play_pause_title = "Stop Playing" if hasattr(self, 'is_playing') and self.is_playing else "Start Playing"
+        self.play_pause_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            play_pause_title, "togglePlayback:", ""
+        )
+        self.play_pause_item.setTarget_(self)
+        self.menu.addItem_(self.play_pause_item)
+        
+        next_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Next Track", "nextTrack:", "")
+        next_item.setTarget_(self)
+        self.menu.addItem_(next_item)
+        
+        prev_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Previous Track", "previousTrack:", "")
+        prev_item.setTarget_(self)
+        self.menu.addItem_(prev_item)
+        
+        # Second separator
+        self.menu.addItem_(AppKit.NSMenuItem.separatorItem())
+        
+        # Player visibility and notifications section
+        player_visibility_title = "Hide Player" if self.player_window.isVisible() else "Show Player"
+        show_player = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(player_visibility_title, "showPlayer:", "")
+        show_player.setTarget_(self)
+        self.menu.addItem_(show_player)
+        
+        notifications_title = "Toggle Notifications (On)" if hasattr(self, 'show_notifications') and self.show_notifications else "Toggle Notifications (Off)"
+        notif_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(notifications_title, "toggleNotifications:", "")
         notif_item.setTarget_(self)
         self.menu.addItem_(notif_item)
+        
+        # Third separator
+        self.menu.addItem_(AppKit.NSMenuItem.separatorItem())
+        
+        # About and Quit section
+        about_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("About", "showAbout:", "")
+        about_item.setTarget_(self)
+        self.menu.addItem_(about_item)
         
         quit_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Quit", "quitApp:", "q")
         quit_item.setTarget_(self)
@@ -454,10 +478,16 @@ class VinylScrobbler(AppKit.NSObject):
                 self.show_alert("Error", f"Failed to skip track: {str(e)}")
 
     def toggleNotifications_(self, sender):
-        """Toggle notifications"""
+        """Toggle notifications on/off"""
         self.show_notifications = not self.show_notifications
-        self.logger.info(f"Notifications toggled to: {self.show_notifications}")
-
+        notification_state = "enabled" if self.show_notifications else "disabled"
+        self.logger.info(f"Notifications {notification_state}")
+        # Update menu to reflect new notification state
+        self.setup_menu()
+        # Show confirmation notification if notifications are enabled
+        if self.show_notifications:
+            self.show_notification("Notifications Enabled", "You will now receive notifications when tracks change")
+    
     def quitApp_(self, sender):
         """Quit the application"""
         AppKit.NSApplication.sharedApplication().terminate_(None)
@@ -1114,18 +1144,13 @@ class VinylScrobbler(AppKit.NSObject):
         except Exception as e:
             self.logger.error(f"Failed to scrobble track: {str(e)}")
 
-    def show_about(self, _):
-        """Display information about the application"""
-        about_text = (
-            f"{self.about_config.get('app_name', 'Vinyl Scrobbler')}\n\n"
-            f"Version: {self.about_config.get('version', '1.0')}\n"
-            f"{self.about_config.get('description', '')}\n\n"
-            f"Created by: {self.about_config.get('author', '')}\n"
-            f"GitHub: {self.about_config.get('github_url', '')}\n\n"
-            f"{self.about_config.get('copyright', '')}"
-        )
-        if self.show_notifications:
-            self.show_alert(title=f"About {self.about_config.get('app_name', 'Vinyl Scrobbler')}", message=about_text)
+    def showAbout_(self, sender):
+        """Show the About window"""
+        about = AppKit.NSAlert.alloc().init()
+        about.setMessageText_("Vinyl Scrobbler")
+        about.setInformativeText_("A simple Last.fm scrobbler for vinyl records.\n\nVersion 1.0.0\n 2024 Russ McKendrick")
+        about.addButtonWithTitle_("OK")
+        about.runModal()
 
 def main():
     app = AppKit.NSApplication.sharedApplication()
