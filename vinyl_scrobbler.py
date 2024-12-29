@@ -313,15 +313,27 @@ class VinylScrobbler(AppKit.NSObject):
         self.statusbar = AppKit.NSStatusBar.systemStatusBar()
         self.statusitem = self.statusbar.statusItemWithLength_(AppKit.NSVariableStatusItemLength)
         
-        # Set initial title to just the vinyl icon
-        self.statusitem.button().setTitle_("💿")
-        
-        # Create the menu
+        # Create menu
         self.menu = AppKit.NSMenu.alloc().init()
         self.statusitem.setMenu_(self.menu)
         
-        # Add menu items
+        # Set initial icon
+        self.update_status_bar_icon()
+        
+        # Setup menu items
         self.setup_menu()
+
+    def update_status_bar_icon(self):
+        """Update the status bar icon based on playback state"""
+        if hasattr(self, 'is_playing') and self.is_playing:
+            # Use play triangle when playing
+            icon = "▶"
+        else:
+            # Use music note when not playing
+            icon = "♪"
+        
+        # Set the status bar title
+        self.statusitem.button().setTitle_(icon)
 
     def setup_menu(self):
         """Setup the status bar menu items"""
@@ -1025,6 +1037,8 @@ class VinylScrobbler(AppKit.NSObject):
             else:
                 self.play_pause_item.setTitle_("Stop Playing")
                 self.start_playback()
+            # Update the status bar icon
+            self.update_status_bar_icon()
         except Exception as e:
             self.logger.error(f"Error toggling playback: {str(e)}")
             if self.show_notifications:
@@ -1054,7 +1068,7 @@ class VinylScrobbler(AppKit.NSObject):
             # Start scrobble timer
             self.is_playing = True
             self.scrobble_timer = threading.Timer(
-                current_track.duration_seconds,
+                max(1, current_track.duration_seconds * 0.5),  # Scrobble after 50% or at least 1 second
                 self.handle_track_end
             )
             self.scrobble_timer.start()
@@ -1065,6 +1079,9 @@ class VinylScrobbler(AppKit.NSObject):
             # Update player window
             self.player_window.updateTrackInfo_withTrack_isPlaying_(None, current_track, True)
             self.player_window.updateProgress_withCurrentSeconds_totalSeconds_(None, 0, current_track.duration_seconds)
+            
+            # Update status bar icon
+            self.update_status_bar_icon()
             
         except Exception as e:
             self.logger.error(f"Error starting playback: {str(e)}")
@@ -1084,11 +1101,13 @@ class VinylScrobbler(AppKit.NSObject):
             if self.timer_thread and self.timer_thread.is_alive():
                 self.timer_thread.join(timeout=1)
             
-            self.update_status_bar("💿")
+            # Update status bar icon
+            self.update_status_bar_icon()
             
-            # Update player window
-            self.player_window.updateTrackInfo_withTrack_isPlaying_(None, self.tracks[self.current_track_index], False)
-            self.player_window.updateProgress_withCurrentSeconds_totalSeconds_(None, 0, self.tracks[self.current_track_index].duration_seconds)
+            if hasattr(self, 'tracks') and self.tracks:
+                current_track = self.tracks[self.current_track_index]
+                self.player_window.updateTrackInfo_withTrack_isPlaying_(None, current_track, False)
+                self.player_window.updateProgress_withCurrentSeconds_totalSeconds_(None, 0, current_track.duration_seconds)
             
         except Exception as e:
             self.logger.error(f"Error stopping playback: {str(e)}")
