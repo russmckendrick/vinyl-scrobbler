@@ -331,8 +331,6 @@ class VinylScrobbler(AppKit.NSObject):
         show_player.setTarget_(self)
         self.menu.addItem_(show_player)
         
-        self.menu.addItem_(AppKit.NSMenuItem.separatorItem())
-        
         # Add play/pause item
         self.play_pause_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             "Start Playing", "togglePlayback:", ""
@@ -348,13 +346,32 @@ class VinylScrobbler(AppKit.NSObject):
         prev_item.setTarget_(self)
         self.menu.addItem_(prev_item)
         
-        self.menu.addItem_(AppKit.NSMenuItem.separatorItem())
+        # Add tracks submenu
+        tracks_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Tracks", None, "")
+        tracks_submenu = AppKit.NSMenu.alloc().init()
+        tracks_item.setSubmenu_(tracks_submenu)
+        
+        # Populate tracks if we have an album loaded
+        if hasattr(self, 'tracks') and self.tracks:
+            for track in self.tracks:
+                # Format track title without duration to match screenshot
+                track_title = f"{track.position}. {track.title}"
+                track_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                    track_title, "trackSelected:", ""
+                )
+                track_item.setTarget_(self)
+                track_item.setRepresentedObject_(track)
+                tracks_submenu.addItem_(track_item)
+        else:
+            no_tracks = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("None", None, "")
+            no_tracks.setEnabled_(False)
+            tracks_submenu.addItem_(no_tracks)
+        
+        self.menu.addItem_(tracks_item)
         
         notif_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Toggle Notifications", "toggleNotifications:", "")
         notif_item.setTarget_(self)
         self.menu.addItem_(notif_item)
-        
-        self.menu.addItem_(AppKit.NSMenuItem.separatorItem())
         
         quit_item = AppKit.NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Quit", "quitApp:", "q")
         quit_item.setTarget_(self)
@@ -787,7 +804,7 @@ class VinylScrobbler(AppKit.NSObject):
         try:
             if not release:
                 return
-                
+            
             self.current_album = release
             self.tracks = []
             
@@ -887,11 +904,13 @@ class VinylScrobbler(AppKit.NSObject):
             
             # Update player window
             if self.tracks:
-                self.player_window.updateTrackInfo_withTrack_isPlaying_(None, self.tracks[0], False)
-                self.player_window.updateProgress_withCurrentSeconds_totalSeconds_(None, 0, max(1, self.tracks[0].duration_seconds))
-            
-            self.logger.info(f"Loaded album: {release.title} with {len(self.tracks)} tracks")
-            
+                first_track = self.tracks[0]
+                self.player_window.updateTrackInfo_withTrack_isPlaying_(None, first_track, False)
+                self.player_window.updateProgress_withCurrentSeconds_totalSeconds_(None, 0, max(1, first_track.duration_seconds))
+                # Refresh the menu to show tracks
+                self.setup_menu()
+                self.logger.info(f"Loaded album: {release.title} with {len(self.tracks)} tracks")
+        
         except Exception as e:
             self.logger.error(f"Error loading album: {str(e)}")
             raise
