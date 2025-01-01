@@ -4,6 +4,7 @@ import OSLog
 import UserNotifications
 
 // MARK: - Array Extension
+// Adds safe array access to prevent index out of bounds errors
 extension Array {
     subscript(safe index: Int) -> Element? {
         return indices.contains(index) ? self[index] : nil
@@ -15,25 +16,28 @@ extension Array {
 class AppDelegate: NSObject, NSApplicationDelegate {
     
     // MARK: - Properties
+    // Logger instance for app-wide logging
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "AppDelegate")
     
+    // Menu bar status item and main menu
     var statusItem: NSStatusItem!
     var mainMenu: NSMenu!
     
-    // Reference to main window and view controller
+    // MARK: - Window Management
+    // References to main window and view controllers
     private var mainWindow: NSWindow?
     private var _mainViewController: ViewController?
     private var _authViewController: AuthViewController?
     private var authWindow: NSWindow? {
         willSet {
-            // Clean up old window if it exists
+            // Clean up old window delegate when setting new window
             if let oldWindow = authWindow {
                 oldWindow.delegate = nil
             }
         }
     }
     
-    // Reference to main view controller
+    // Lazy loading of main view controller
     private var mainViewController: ViewController? {
         if _mainViewController == nil {
             _mainViewController = NSApp.windows.first?.contentViewController as? ViewController
@@ -41,7 +45,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return _mainViewController
     }
     
-    // MARK: - Models
+    // MARK: - Track Model
+    // Represents a single track in the album
     struct Track {
         let position: String
         let title: String
@@ -49,7 +54,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let artist: String
         let album: String
         
-        // Convert duration string (MM:SS) to seconds
+        // Computed property to convert MM:SS duration to seconds
         var durationSeconds: Int? {
             guard let duration = duration else { return nil }
             let components = duration.split(separator: ":")
@@ -62,31 +67,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    // List of tracks for the loaded album
+    // MARK: - Playback State
+    // Current album and playback tracking
     var tracks: [Track] = []
     var currentTrackIndex: Int = 0
     var isPlaying: Bool = false
     var currentTrackScrobbled: Bool = false
     var currentTrackStartTime: Date? = nil
     
-    // Timer to update playback progress
+    // Timers for playback progress
     private var playbackTimer: Timer?
     private var dispatchTimer: DispatchSourceTimer?
     var currentPlaybackSeconds: Int = 0
     
-    // Whether we show notifications
+    // Notification preferences
     var showNotifications: Bool = true
     
-    // Services
+    // MARK: - Services
+    // Service instances for Discogs and Last.fm
     private let discogsService = DiscogsService.shared
     private var lastFMService: LastFMService {
         LastFMService.shared
     }
     
-    // Add this property to the AppDelegate class
+    // MARK: - Search Management
     private var currentSearchDataSource: SearchResultsDataSource?
-    
-    // Add property for search window controller
     private var searchWindowController: SearchWindowController?
     
     // MARK: - App Lifecycle
