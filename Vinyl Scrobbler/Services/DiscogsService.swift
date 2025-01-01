@@ -82,15 +82,31 @@ class DiscogsService {
             return input
         }
         
-        // Check if input is a URL
-        guard let url = URL(string: input),
-              url.host == "www.discogs.com" || url.host == "discogs.com",
-              url.pathComponents.count >= 3,
-              url.pathComponents[1] == "release" else {
-            throw DiscogsError.invalidInput
+        // Check if input is in [r123456] format
+        if input.hasPrefix("[r") && input.hasSuffix("]") {
+            let start = input.index(input.startIndex, offsetBy: 2)
+            let end = input.index(input.endIndex, offsetBy: -1)
+            let releaseId = String(input[start..<end])
+            if let _ = Int(releaseId) {
+                return releaseId
+            }
         }
         
-        return url.pathComponents[2]
+        // Check if input is a URL
+        if let url = URL(string: input) {
+            if (url.host == "www.discogs.com" || url.host == "discogs.com"),
+               url.pathComponents.count >= 3,
+               url.pathComponents[1] == "release" {
+                // Extract just the numeric part from the URL path
+                let releaseIdPart = url.pathComponents[2]
+                if let endIndex = releaseIdPart.firstIndex(where: { !$0.isNumber }) {
+                    return String(releaseIdPart[..<endIndex])
+                }
+                return releaseIdPart
+            }
+        }
+        
+        throw DiscogsError.invalidInput
     }
     
     func loadRelease(_ releaseId: String) async throws -> DiscogsRelease {

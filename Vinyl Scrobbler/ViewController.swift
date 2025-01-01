@@ -1,10 +1,3 @@
-//
-//  ViewController.swift
-//  Vinyl Scrobbler
-//
-//  Created by Russ Mckendrick on 29/12/2024.
-//
-
 import Cocoa
 import CoreVideo
 import os
