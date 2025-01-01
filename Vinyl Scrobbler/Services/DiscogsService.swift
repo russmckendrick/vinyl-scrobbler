@@ -28,6 +28,28 @@ struct DiscogsRelease: Codable {
     }
 }
 
+struct DiscogsSearchResponse: Codable {
+    let results: [SearchResult]
+    let pagination: Pagination
+    
+    struct SearchResult: Codable {
+        let id: Int
+        let title: String
+        let year: String?
+        let thumb: String?
+        let format: [String]?
+        let label: [String]?
+        let type: String
+        let country: String?
+    }
+    
+    struct Pagination: Codable {
+        let page: Int
+        let pages: Int
+        let items: Int
+    }
+}
+
 // MARK: - Errors
 enum DiscogsError: LocalizedError {
     case invalidInput
@@ -202,6 +224,75 @@ class DiscogsService {
             }
         } catch {
             self.logger.error("Network error: \(error.localizedDescription)")
+            throw DiscogsError.connectionError(error.localizedDescription)
+        }
+    }
+    
+    func searchReleases(_ query: String, page: Int = 1) async throws -> DiscogsSearchResponse {
+        var components = URLComponents(string: "https://api.discogs.com/database/search")
+        
+        // Build query parameters
+        var queryItems = [
+            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "type", value: "release"),  // Only search for releases
+            URLQueryItem(name: "format", value: "vinyl,album,lp"),  // Focus on vinyl and albums
+            URLQueryItem(name: "per_page", value: "20"),
+            URLQueryItem(name: "page", value: String(page))
+        ]
+        
+        // If query contains a hyphen, it might be "artist - album" format
+        if query.contains("-") {
+            let parts = query.split(separator: "-").map(String.init)
+            if parts.count == 2 {
+                // Clear the general query and use specific fields
+                queryItems = [
+                    URLQueryItem(name: "artist", value: parts[0].trimmingCharacters(in: .whitespaces)),
+                    URLQueryItem(name: "release_title", value: parts[1].trimmingCharacters(in: .whitespaces)),
+                    URLQueryItem(name: "type", value: "release"),
+                    URLQueryItem(name: "format", value: "vinyl,album,lp"),
+                    URLQueryItem(name: "per_page", value: "20"),
+                    URLQueryItem(name: "page", value: String(page))
+                ]
+            }
+        }
+        
+        components?.queryItems = queryItems
+        
+        guard let url = components?.url else {
+            throw DiscogsError.invalidURL
+        }
+        
+        logger.info("🔍 Searching Discogs for: \(query) (Page \(page))")
+        logger.debug("Request URL: \(url.absoluteString)")
+        
+        var request = URLRequest(url: url)
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        if let token = ConfigurationManager.shared.discogsToken {
+            request.setValue("Discogs token=\(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw DiscogsError.invalidResponse
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                throw DiscogsError.httpError(httpResponse.statusCode)
+            }
+            
+            let decoder = JSONDecoder()
+            let searchResponse = try decoder.decode(DiscogsSearchResponse.self, from: data)
+            
+            logger.info("✅ Found \(searchResponse.results.count) results")
+            return searchResponse
+            
+        } catch let decodingError as DecodingError {
+            logger.error("❌ Failed to decode search response: \(decodingError)")
+            throw DiscogsError.decodingError(decodingError)
+        } catch {
+            logger.error("❌ Search failed: \(error.localizedDescription)")
             throw DiscogsError.connectionError(error.localizedDescription)
         }
     }

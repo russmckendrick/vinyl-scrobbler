@@ -83,6 +83,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         LastFMService.shared
     }
     
+    // Add this property to the AppDelegate class
+    private var currentSearchDataSource: SearchResultsDataSource?
+    
     // MARK: - App Lifecycle
     
     @MainActor
@@ -247,8 +250,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc func loadAlbumClicked(_ sender: Any) {
         if checkLastFMAuthAndShowAlert() {
-            Task { [weak self] in
-                await self?.searchAlbumAction(sender)
+            let alert = NSAlert()
+            alert.messageText = "Load Album"
+            alert.informativeText = "Choose how to load an album"
+            alert.addButton(withTitle: "Search Discogs")
+            alert.addButton(withTitle: "Enter URL/ID")
+            alert.addButton(withTitle: "Cancel")
+            
+            let response = alert.runModal()
+            
+            Task {
+                switch response {
+                case .alertFirstButtonReturn:
+                    await showDiscogsSearch()
+                case .alertSecondButtonReturn:
+                    await searchAlbumAction(sender)
+                default:
+                    break
+                }
             }
         }
     }
@@ -1146,5 +1165,431 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return false
         }
         return true
+    }
+    
+    @MainActor
+    private func showDiscogsSearch() async {
+        let alert = NSAlert()
+        alert.messageText = "Search Discogs"
+        alert.informativeText = "Enter an artist, album or both to search"
+        alert.addButton(withTitle: "Search")
+        alert.addButton(withTitle: "Cancel")
+        
+        let searchField = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 24))
+        alert.accessoryView = searchField
+        
+        let response = alert.runModal()
+        
+        if response == .alertFirstButtonReturn {
+            let query = searchField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !query.isEmpty else { return }
+            
+            await performSearch(query, page: 1)
+        }
+    }
+    
+    @MainActor
+    private func showSearchResults(_ results: [DiscogsSearchResponse.SearchResult], pagination: DiscogsSearchResponse.Pagination, query: String) {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 450), // Made taller for pagination controls
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        // Create container view
+        let containerView = NSView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        window.contentView?.addSubview(containerView)
+        
+        // Create scroll view and table as before
+        let scrollView = NSScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.hasVerticalScroller = true
+        containerView.addSubview(scrollView)
+        
+        let tableView = NSTableView()
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Add columns
+        let titleColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("title"))
+        titleColumn.title = "Title"
+        titleColumn.width = 300
+        tableView.addTableColumn(titleColumn)
+        
+        let yearColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("year"))
+        yearColumn.title = "Year"
+        yearColumn.width = 60
+        tableView.addTableColumn(yearColumn)
+        
+        let formatColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("format"))
+        formatColumn.title = "Format"
+        formatColumn.width = 100
+        tableView.addTableColumn(formatColumn)
+        
+        let actionColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("action"))
+        actionColumn.title = ""  // No header title
+        actionColumn.width = 40
+        actionColumn.maxWidth = 40
+        actionColumn.minWidth = 40
+        tableView.addTableColumn(actionColumn)
+        
+        // Create pagination controls
+        let paginationView = NSView()
+        paginationView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(paginationView)
+        
+        let previousButton = NSButton(title: "Previous", target: nil, action: nil)
+        previousButton.translatesAutoresizingMaskIntoConstraints = false
+        paginationView.addSubview(previousButton)
+        
+        let pageLabel = NSTextField(labelWithString: "Page \(pagination.page) of \(pagination.pages)")
+        pageLabel.translatesAutoresizingMaskIntoConstraints = false
+        pageLabel.alignment = .center
+        paginationView.addSubview(pageLabel)
+        
+        let nextButton = NSButton(title: "Next", target: nil, action: nil)
+        nextButton.translatesAutoresizingMaskIntoConstraints = false
+        paginationView.addSubview(nextButton)
+        
+        // Set up data source
+        let dataSource = SearchResultsDataSource(results: results) { [weak self] selectedResult in
+            Task { @MainActor in
+                if let self = self {
+                    await self.loadDiscogsRelease(from: String(selectedResult.id))
+                }
+            }
+        }
+        
+        // Store strong reference to data source
+        self.currentSearchDataSource = dataSource
+        
+        // Set up table view
+        tableView.dataSource = dataSource
+        tableView.delegate = dataSource
+        
+        scrollView.documentView = tableView
+        
+        // Set up pagination actions
+        previousButton.isEnabled = pagination.page > 1
+        nextButton.isEnabled = pagination.page < pagination.pages
+        
+        previousButton.target = self
+        previousButton.action = #selector(previousPage)
+        
+        nextButton.target = self
+        nextButton.action = #selector(nextPage)
+        
+        // Store pagination state
+        let paginationState = PaginationState(
+            currentPage: pagination.page,
+            totalPages: pagination.pages,
+            query: query,
+            window: window,
+            pageLabel: pageLabel
+        )
+        
+        objc_setAssociatedObject(window, &AssociatedKeys.paginationState, paginationState, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        
+        // Layout constraints
+        NSLayoutConstraint.activate([
+            // Container view
+            containerView.topAnchor.constraint(equalTo: window.contentView!.topAnchor),
+            containerView.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor),
+            containerView.bottomAnchor.constraint(equalTo: window.contentView!.bottomAnchor),
+            
+            // Scroll view
+            scrollView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: paginationView.topAnchor),
+            
+            // Pagination view
+            paginationView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            paginationView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            paginationView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            paginationView.heightAnchor.constraint(equalToConstant: 50),
+            
+            // Pagination controls
+            previousButton.leadingAnchor.constraint(equalTo: paginationView.leadingAnchor, constant: 20),
+            previousButton.centerYAnchor.constraint(equalTo: paginationView.centerYAnchor),
+            
+            pageLabel.centerXAnchor.constraint(equalTo: paginationView.centerXAnchor),
+            pageLabel.centerYAnchor.constraint(equalTo: paginationView.centerYAnchor),
+            
+            nextButton.trailingAnchor.constraint(equalTo: paginationView.trailingAnchor, constant: -20),
+            nextButton.centerYAnchor.constraint(equalTo: paginationView.centerYAnchor)
+        ])
+        
+        window.title = "Search Results"
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+    }
+    
+    private class SearchResultsDataSource: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+        let results: [DiscogsSearchResponse.SearchResult]
+        let selectionCallback: (DiscogsSearchResponse.SearchResult) -> Void
+        
+        // Store a reference to the table view
+        private weak var tableView: NSTableView?
+        
+        init(results: [DiscogsSearchResponse.SearchResult], 
+             selectionCallback: @escaping (DiscogsSearchResponse.SearchResult) -> Void) {
+            self.results = results
+            self.selectionCallback = selectionCallback
+            super.init()
+        }
+        
+        func numberOfRows(in tableView: NSTableView) -> Int {
+            return results.count
+        }
+        
+        func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+            // Store reference to table view
+            self.tableView = tableView
+            
+            let result = results[row]
+            
+            switch tableColumn?.identifier.rawValue {
+            case "action":
+                let cell = NSTableCellView()
+                
+                // Create button with a more explicit tag
+                let button = NSButton(image: NSImage(systemSymbolName: "plus.circle.fill", accessibilityDescription: "Add")!, 
+                                    target: self, 
+                                    action: #selector(addButtonClicked(_:)))
+                
+                // Store the release ID directly in the button's identifier
+                button.identifier = NSUserInterfaceItemIdentifier(String(result.id))
+                button.tag = row  // Keep row for reference
+                
+                button.bezelStyle = .circular
+                button.isBordered = false
+                button.translatesAutoresizingMaskIntoConstraints = false
+                cell.addSubview(button)
+                
+                NSLayoutConstraint.activate([
+                    button.centerXAnchor.constraint(equalTo: cell.centerXAnchor),
+                    button.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                    button.widthAnchor.constraint(equalToConstant: 20),
+                    button.heightAnchor.constraint(equalToConstant: 20)
+                ])
+                
+                return cell
+                
+            case "title":
+                let cell = NSTableCellView()
+                let text = NSTextField(labelWithString: result.title)
+                text.translatesAutoresizingMaskIntoConstraints = false
+                cell.addSubview(text)
+                
+                NSLayoutConstraint.activate([
+                    text.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 4),
+                    text.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
+                    text.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
+                ])
+                
+                return cell
+                
+            case "year":
+                let cell = NSTableCellView()
+                let text = NSTextField(labelWithString: result.year ?? "N/A")
+                text.translatesAutoresizingMaskIntoConstraints = false
+                cell.addSubview(text)
+                
+                NSLayoutConstraint.activate([
+                    text.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 4),
+                    text.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
+                    text.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
+                ])
+                
+                return cell
+                
+            case "format":
+                let cell = NSTableCellView()
+                let text = NSTextField(labelWithString: result.format?.joined(separator: ", ") ?? "N/A")
+                text.translatesAutoresizingMaskIntoConstraints = false
+                cell.addSubview(text)
+                
+                NSLayoutConstraint.activate([
+                    text.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 4),
+                    text.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
+                    text.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
+                ])
+                
+                return cell
+                
+            default:
+                return nil
+            }
+        }
+        
+        // Instead of using a gesture recognizer, use the built-in double click support
+        func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+            return false  // Disable row selection
+        }
+        
+        func tableViewSelectionDidChange(_ notification: Notification) {
+            // Do nothing on single click
+        }
+        
+        // Handle double click using the standard method
+        @MainActor
+        func tableView(_ tableView: NSTableView, rowActionsForRow row: Int, edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {
+            return []
+        }
+        
+        @MainActor
+        func tableView(_ tableView: NSTableView, didClick tableColumn: NSTableColumn) {
+            // Handle single click if needed
+        }
+        
+        @MainActor
+        func tableView(_ tableView: NSTableView, mouseDownInHeaderOf tableColumn: NSTableColumn) {
+            // Handle header click if needed
+        }
+        
+        @MainActor
+        func tableView(_ tableView: NSTableView, didDoubleClickRow row: Int) {
+            guard row < results.count else { return }
+            let selectedResult = results[row]
+            selectionCallback(selectedResult)
+        }
+        
+        @MainActor
+        @objc private func addButtonClicked(_ sender: NSButton) {
+            Task { @MainActor in
+                // Use the stored release ID instead of calculating from row
+                if let releaseId = sender.identifier?.rawValue {
+                    selectionCallback(results[sender.tag])
+                    
+                    // Log for debugging
+                    print("Selected release ID: \(releaseId) from row \(sender.tag)")
+                    print("Result details: \(results[sender.tag])")
+                }
+            }
+        }
+    }
+    
+    private struct AssociatedKeys {
+        static var paginationState: UInt8 = 0
+        static var dataSource: UInt8 = 1
+    }
+    
+    private class PaginationState {
+        let currentPage: Int
+        let totalPages: Int
+        let query: String
+        weak var window: NSWindow?
+        weak var pageLabel: NSTextField?
+        
+        init(currentPage: Int, totalPages: Int, query: String, window: NSWindow, pageLabel: NSTextField) {
+            self.currentPage = currentPage
+            self.totalPages = totalPages
+            self.query = query
+            self.window = window
+            self.pageLabel = pageLabel
+        }
+    }
+    
+    @objc private func previousPage(_ sender: NSButton) {
+        guard let window = sender.window,
+              let state = objc_getAssociatedObject(window, &AssociatedKeys.paginationState) as? PaginationState,
+              state.currentPage > 1 else { return }
+        
+        Task {
+            await performSearch(state.query, page: state.currentPage - 1)
+        }
+    }
+    
+    @objc private func nextPage(_ sender: NSButton) {
+        guard let window = sender.window,
+              let state = objc_getAssociatedObject(window, &AssociatedKeys.paginationState) as? PaginationState,
+              state.currentPage < state.totalPages else { return }
+        
+        Task {
+            await performSearch(state.query, page: state.currentPage + 1)
+        }
+    }
+    
+    private func performSearch(_ query: String, page: Int) async {
+        do {
+            updateStatusBar("Searching...")
+            let searchResults = try await discogsService.searchReleases(query, page: page)
+            
+            if searchResults.results.isEmpty {
+                showAlert(title: "No Results", message: "No releases found matching your search.")
+                updateStatusBar("♪")
+                return
+            }
+            
+            // Update existing window or create new one
+            if let existingWindow = NSApp.windows.first(where: { 
+                objc_getAssociatedObject($0, &AssociatedKeys.paginationState) != nil 
+            }) {
+                updateSearchResults(existingWindow, results: searchResults.results, 
+                                  pagination: searchResults.pagination, query: query)
+            } else {
+                showSearchResults(searchResults.results, pagination: searchResults.pagination, query: query)
+            }
+            
+        } catch {
+            showAlert(title: "Search Failed", message: error.localizedDescription)
+            updateStatusBar("♪")
+        }
+    }
+    
+    @MainActor
+    private func updateSearchResults(_ window: NSWindow, results: [DiscogsSearchResponse.SearchResult], 
+                                   pagination: DiscogsSearchResponse.Pagination, query: String) {
+        // Update table view - Fix view hierarchy access
+        if let containerView = window.contentView?.subviews.first,
+           let scrollView = containerView.subviews.first(where: { $0 is NSScrollView }) as? NSScrollView,
+           let tableView = scrollView.documentView as? NSTableView {
+            
+            // Update data source
+            let dataSource = SearchResultsDataSource(results: results) { [weak self] selectedResult in
+                Task { @MainActor in
+                    if let self = self {
+                        await self.loadDiscogsRelease(from: String(selectedResult.id))
+                    }
+                }
+            }
+            
+            // Store strong reference to data source
+            self.currentSearchDataSource = dataSource
+            
+            tableView.dataSource = dataSource
+            tableView.delegate = dataSource
+            tableView.reloadData()
+        }
+        
+        // Update pagination controls - Fix view hierarchy access
+        if let containerView = window.contentView?.subviews.first,
+           let paginationView = containerView.subviews.last,
+           let state = objc_getAssociatedObject(window, &AssociatedKeys.paginationState) as? PaginationState,
+           let pageLabel = state.pageLabel {
+            
+            pageLabel.stringValue = "Page \(pagination.page) of \(pagination.pages)"
+            
+            // Update pagination buttons
+            let buttons = paginationView.subviews.compactMap { $0 as? NSButton }
+            let previousButton = buttons.first { $0.title == "Previous" }
+            let nextButton = buttons.first { $0.title == "Next" }
+            
+            previousButton?.isEnabled = pagination.page > 1
+            nextButton?.isEnabled = pagination.page < pagination.pages
+            
+            // Store updated pagination state
+            let newState = PaginationState(
+                currentPage: pagination.page,
+                totalPages: pagination.pages,
+                query: query,
+                window: window,
+                pageLabel: pageLabel
+            )
+            objc_setAssociatedObject(window, &AssociatedKeys.paginationState, newState, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
     }
 }
