@@ -407,15 +407,62 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc func showAbout(_ sender: Any?) {
         let alert = NSAlert()
-        alert.messageText = "Vinyl Scrobbler"
-        alert.informativeText = """
-        A simple Last.fm scrobbler for vinyl records.
-
-        Version 1.0.0
-        2024 Russ McKendrick
-        """
+        
+        // Create custom view for about content
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 160))
+        
+        // App name and version
+        let titleLabel = NSTextField(labelWithString: "\(AppConfig.name)")
+        titleLabel.frame = NSRect(x: 0, y: 130, width: 300, height: 20)
+        titleLabel.alignment = .center
+        titleLabel.font = NSFont.boldSystemFont(ofSize: 16)
+        container.addSubview(titleLabel)
+        
+        let versionLabel = NSTextField(labelWithString: "Version \(AppConfig.version)")
+        versionLabel.frame = NSRect(x: 0, y: 100, width: 300, height: 20)
+        versionLabel.alignment = .center
+        versionLabel.textColor = .secondaryLabelColor
+        container.addSubview(versionLabel)
+        
+        // Description
+        let descLabel = NSTextField(labelWithString: AppConfig.description)
+        descLabel.frame = NSRect(x: 20, y: 70, width: 260, height: 20)
+        descLabel.alignment = .center
+        descLabel.textColor = .secondaryLabelColor
+        container.addSubview(descLabel)
+        
+        // GitHub link
+        let linkButton = NSButton(frame: NSRect(x: 0, y: 40, width: 300, height: 20))
+        linkButton.title = "github.com/russmckendrick/vinyl-scrobbler"
+        linkButton.bezelStyle = .inline
+        linkButton.isBordered = false
+        linkButton.alignment = .center
+        linkButton.contentTintColor = .linkColor
+        linkButton.target = self
+        linkButton.action = #selector(openGitHub)
+        container.addSubview(linkButton)
+        
+        // Copyright
+        let copyrightLabel = NSTextField(labelWithString: "\(AppConfig.year) \(AppConfig.author)")
+        copyrightLabel.frame = NSRect(x: 0, y: 10, width: 300, height: 20)
+        copyrightLabel.alignment = .center
+        copyrightLabel.textColor = .secondaryLabelColor
+        container.addSubview(copyrightLabel)
+        
+        alert.accessoryView = container
         alert.addButton(withTitle: "OK")
+        
+        // Keep the alert icon but remove the text
+        alert.messageText = ""
+        alert.informativeText = ""
+        
         alert.runModal()
+    }
+    
+    @objc private func openGitHub() {
+        if let url = URL(string: AppConfig.githubURL) {
+            NSWorkspace.shared.open(url)
+        }
     }
     
     @objc func quitApp(_ sender: Any?) {
