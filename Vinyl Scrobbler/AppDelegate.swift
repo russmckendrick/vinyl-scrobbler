@@ -86,6 +86,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Add this property to the AppDelegate class
     private var currentSearchDataSource: SearchResultsDataSource?
     
+    // Add property for search window controller
+    private var searchWindowController: SearchWindowController?
+    
     // MARK: - App Lifecycle
     
     @MainActor
@@ -123,6 +126,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             mainWindow = windowController.window
             mainWindow?.orderOut(nil)  // Make sure window is hidden
         }
+        
+        NotificationCenter.default.addObserver(self, 
+                                         selector: #selector(handlePreviousPage), 
+                                         name: NSNotification.Name("LoadPreviousPage"), 
+                                         object: nil)
+        NotificationCenter.default.addObserver(self, 
+                                         selector: #selector(handleNextPage), 
+                                         name: NSNotification.Name("LoadNextPage"), 
+                                         object: nil)
     }
     
     func applicationWillTerminate(_ notification: Notification) {
@@ -1189,142 +1201,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @MainActor
-    private func showSearchResults(_ results: [DiscogsSearchResponse.SearchResult], pagination: DiscogsSearchResponse.Pagination, query: String) {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 450), // Made taller for pagination controls
-            styleMask: [.titled, .closable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        
-        // Create container view
-        let containerView = NSView()
-        containerView.translatesAutoresizingMaskIntoConstraints = false
-        window.contentView?.addSubview(containerView)
-        
-        // Create scroll view and table as before
-        let scrollView = NSScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.hasVerticalScroller = true
-        containerView.addSubview(scrollView)
-        
-        let tableView = NSTableView()
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Add columns
-        let titleColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("title"))
-        titleColumn.title = "Title"
-        titleColumn.width = 300
-        tableView.addTableColumn(titleColumn)
-        
-        let yearColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("year"))
-        yearColumn.title = "Year"
-        yearColumn.width = 60
-        tableView.addTableColumn(yearColumn)
-        
-        let formatColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("format"))
-        formatColumn.title = "Format"
-        formatColumn.width = 100
-        tableView.addTableColumn(formatColumn)
-        
-        let actionColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("action"))
-        actionColumn.title = ""  // No header title
-        actionColumn.width = 40
-        actionColumn.maxWidth = 40
-        actionColumn.minWidth = 40
-        tableView.addTableColumn(actionColumn)
-        
-        // Create pagination controls
-        let paginationView = NSView()
-        paginationView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(paginationView)
-        
-        let previousButton = NSButton(title: "Previous", target: nil, action: nil)
-        previousButton.translatesAutoresizingMaskIntoConstraints = false
-        paginationView.addSubview(previousButton)
-        
-        let pageLabel = NSTextField(labelWithString: "Page \(pagination.page) of \(pagination.pages)")
-        pageLabel.translatesAutoresizingMaskIntoConstraints = false
-        pageLabel.alignment = .center
-        paginationView.addSubview(pageLabel)
-        
-        let nextButton = NSButton(title: "Next", target: nil, action: nil)
-        nextButton.translatesAutoresizingMaskIntoConstraints = false
-        paginationView.addSubview(nextButton)
-        
-        // Set up data source
-        let dataSource = SearchResultsDataSource(results: results) { [weak self] selectedResult in
-            Task { @MainActor in
-                if let self = self {
-                    await self.loadDiscogsRelease(from: String(selectedResult.id))
+    private func showSearchResults(_ results: [DiscogsSearchResponse.SearchResult], 
+                                 pagination: DiscogsSearchResponse.Pagination, 
+                                 query: String) {
+        if let existingController = searchWindowController {
+            // Update existing window
+            existingController.updateResults(results, pagination: pagination, query: query)
+        } else {
+            // Create new window controller
+            let controller = SearchWindowController(
+                results: results,
+                pagination: pagination,
+                query: query,
+                onSelect: { [weak self] selectedResult in
+                    Task { @MainActor in
+                        if let self = self {
+                            await self.loadDiscogsRelease(from: String(selectedResult.id))
+                        }
+                    }
+                },
+                onClose: { [weak self] in
+                    self?.searchWindowController = nil
                 }
-            }
+            )
+            
+            searchWindowController = controller
+            controller.window?.center()
+            controller.showWindow(nil)
         }
-        
-        // Store strong reference to data source
-        self.currentSearchDataSource = dataSource
-        
-        // Set up table view
-        tableView.dataSource = dataSource
-        tableView.delegate = dataSource
-        
-        scrollView.documentView = tableView
-        
-        // Set up pagination actions
-        previousButton.isEnabled = pagination.page > 1
-        nextButton.isEnabled = pagination.page < pagination.pages
-        
-        previousButton.target = self
-        previousButton.action = #selector(previousPage)
-        
-        nextButton.target = self
-        nextButton.action = #selector(nextPage)
-        
-        // Store pagination state
-        let paginationState = PaginationState(
-            currentPage: pagination.page,
-            totalPages: pagination.pages,
-            query: query,
-            window: window,
-            pageLabel: pageLabel
-        )
-        
-        objc_setAssociatedObject(window, &AssociatedKeys.paginationState, paginationState, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        
-        // Layout constraints
-        NSLayoutConstraint.activate([
-            // Container view
-            containerView.topAnchor.constraint(equalTo: window.contentView!.topAnchor),
-            containerView.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor),
-            containerView.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor),
-            containerView.bottomAnchor.constraint(equalTo: window.contentView!.bottomAnchor),
-            
-            // Scroll view
-            scrollView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: paginationView.topAnchor),
-            
-            // Pagination view
-            paginationView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            paginationView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            paginationView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            paginationView.heightAnchor.constraint(equalToConstant: 50),
-            
-            // Pagination controls
-            previousButton.leadingAnchor.constraint(equalTo: paginationView.leadingAnchor, constant: 20),
-            previousButton.centerYAnchor.constraint(equalTo: paginationView.centerYAnchor),
-            
-            pageLabel.centerXAnchor.constraint(equalTo: paginationView.centerXAnchor),
-            pageLabel.centerYAnchor.constraint(equalTo: paginationView.centerYAnchor),
-            
-            nextButton.trailingAnchor.constraint(equalTo: paginationView.trailingAnchor, constant: -20),
-            nextButton.centerYAnchor.constraint(equalTo: paginationView.centerYAnchor)
-        ])
-        
-        window.title = "Search Results"
-        window.center()
-        window.makeKeyAndOrderFront(nil)
     }
     
     private class SearchResultsDataSource: NSObject, NSTableViewDataSource, NSTableViewDelegate {
@@ -1590,6 +1494,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 pageLabel: pageLabel
             )
             objc_setAssociatedObject(window, &AssociatedKeys.paginationState, newState, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+    
+    // Add handlers
+    @objc private func handlePreviousPage() {
+        if let state = searchWindowController?.currentState {
+            Task {
+                await performSearch(state.query, page: state.currentPage - 1)
+            }
+        }
+    }
+    
+    @objc private func handleNextPage() {
+        if let state = searchWindowController?.currentState {
+            Task {
+                await performSearch(state.query, page: state.currentPage + 1)
+            }
         }
     }
 }
