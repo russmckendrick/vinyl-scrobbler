@@ -1,0 +1,38 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.Spotlight-V100
+.Trashes
+
+# Xcode
+DerivedData/
+build/
+*.xcworkspace
+xcuserdata/
+xcuserdata/*
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+
+# Swift Package Manager
+/.build/
+/Packages
+Package.pins
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Carthage
+Carthage/Build
+
+# Cocoapods
+Pods/
+Podfile.lock
+
+# Other
+*.swp
+*.swo
+*~
+
+# Remove SecureConfig.swift from Git while keeping the file locally:
+Vinyl Scrobbler/Services/SecureConfig.swift

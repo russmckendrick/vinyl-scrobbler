@@ -1,0 +1,593 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CC16697F2D21EFF8006B9CA3 /* ScrobbleKit in Frameworks */ = {isa = PBXBuildFile; productRef = CC16697E2D21EFF8006B9CA3 /* ScrobbleKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CC1669532D21EE67006B9CA3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CC1669392D21EE66006B9CA3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CC1669402D21EE66006B9CA3;
+			remoteInfo = "Vinyl Scrobbler";
+		};
+		CC16695D2D21EE67006B9CA3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CC1669392D21EE66006B9CA3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CC1669402D21EE66006B9CA3;
+			remoteInfo = "Vinyl Scrobbler";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		CC1669412D21EE66006B9CA3 /* Vinyl Scrobbler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Vinyl Scrobbler.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC1669522D21EE67006B9CA3 /* Vinyl ScrobblerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Vinyl ScrobblerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC16695C2D21EE67006B9CA3 /* Vinyl ScrobblerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Vinyl ScrobblerUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC16697C2D21EF23006B9CA3 /* ScrobbleKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = ScrobbleKit; path = ../ScrobbleKit; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		CC1669432D21EE66006B9CA3 /* Vinyl Scrobbler */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Vinyl Scrobbler";
+			sourceTree = "<group>";
+		};
+		CC1669552D21EE67006B9CA3 /* Vinyl ScrobblerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Vinyl ScrobblerTests";
+			sourceTree = "<group>";
+		};
+		CC16695F2D21EE67006B9CA3 /* Vinyl ScrobblerUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Vinyl ScrobblerUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CC16693E2D21EE66006B9CA3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CC16697F2D21EFF8006B9CA3 /* ScrobbleKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC16694F2D21EE67006B9CA3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC1669592D21EE67006B9CA3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CC1669382D21EE66006B9CA3 = {
+			isa = PBXGroup;
+			children = (
+				CC1669432D21EE66006B9CA3 /* Vinyl Scrobbler */,
+				CC1669552D21EE67006B9CA3 /* Vinyl ScrobblerTests */,
+				CC16695F2D21EE67006B9CA3 /* Vinyl ScrobblerUITests */,
+				CC16697B2D21EF23006B9CA3 /* Frameworks */,
+				CC1669422D21EE66006B9CA3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CC1669422D21EE66006B9CA3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CC1669412D21EE66006B9CA3 /* Vinyl Scrobbler.app */,
+				CC1669522D21EE67006B9CA3 /* Vinyl ScrobblerTests.xctest */,
+				CC16695C2D21EE67006B9CA3 /* Vinyl ScrobblerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CC16697B2D21EF23006B9CA3 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				CC16697C2D21EF23006B9CA3 /* ScrobbleKit */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CC1669402D21EE66006B9CA3 /* Vinyl Scrobbler */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC1669662D21EE67006B9CA3 /* Build configuration list for PBXNativeTarget "Vinyl Scrobbler" */;
+			buildPhases = (
+				CC16693D2D21EE66006B9CA3 /* Sources */,
+				CC16693E2D21EE66006B9CA3 /* Frameworks */,
+				CC16693F2D21EE66006B9CA3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CC1669432D21EE66006B9CA3 /* Vinyl Scrobbler */,
+			);
+			name = "Vinyl Scrobbler";
+			packageProductDependencies = (
+				CC16697E2D21EFF8006B9CA3 /* ScrobbleKit */,
+			);
+			productName = "Vinyl Scrobbler";
+			productReference = CC1669412D21EE66006B9CA3 /* Vinyl Scrobbler.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CC1669512D21EE67006B9CA3 /* Vinyl ScrobblerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC1669692D21EE67006B9CA3 /* Build configuration list for PBXNativeTarget "Vinyl ScrobblerTests" */;
+			buildPhases = (
+				CC16694E2D21EE67006B9CA3 /* Sources */,
+				CC16694F2D21EE67006B9CA3 /* Frameworks */,
+				CC1669502D21EE67006B9CA3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CC1669542D21EE67006B9CA3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CC1669552D21EE67006B9CA3 /* Vinyl ScrobblerTests */,
+			);
+			name = "Vinyl ScrobblerTests";
+			packageProductDependencies = (
+			);
+			productName = "Vinyl ScrobblerTests";
+			productReference = CC1669522D21EE67006B9CA3 /* Vinyl ScrobblerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CC16695B2D21EE67006B9CA3 /* Vinyl ScrobblerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC16696C2D21EE67006B9CA3 /* Build configuration list for PBXNativeTarget "Vinyl ScrobblerUITests" */;
+			buildPhases = (
+				CC1669582D21EE67006B9CA3 /* Sources */,
+				CC1669592D21EE67006B9CA3 /* Frameworks */,
+				CC16695A2D21EE67006B9CA3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CC16695E2D21EE67006B9CA3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CC16695F2D21EE67006B9CA3 /* Vinyl ScrobblerUITests */,
+			);
+			name = "Vinyl ScrobblerUITests";
+			packageProductDependencies = (
+			);
+			productName = "Vinyl ScrobblerUITests";
+			productReference = CC16695C2D21EE67006B9CA3 /* Vinyl ScrobblerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CC1669392D21EE66006B9CA3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					CC1669402D21EE66006B9CA3 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					CC1669512D21EE67006B9CA3 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = CC1669402D21EE66006B9CA3;
+					};
+					CC16695B2D21EE67006B9CA3 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = CC1669402D21EE66006B9CA3;
+					};
+				};
+			};
+			buildConfigurationList = CC16693C2D21EE66006B9CA3 /* Build configuration list for PBXProject "Vinyl Scrobbler" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CC1669382D21EE66006B9CA3;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CC16697D2D21EFF8006B9CA3 /* XCLocalSwiftPackageReference "../ScrobbleKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CC1669422D21EE66006B9CA3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CC1669402D21EE66006B9CA3 /* Vinyl Scrobbler */,
+				CC1669512D21EE67006B9CA3 /* Vinyl ScrobblerTests */,
+				CC16695B2D21EE67006B9CA3 /* Vinyl ScrobblerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CC16693F2D21EE66006B9CA3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC1669502D21EE67006B9CA3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC16695A2D21EE67006B9CA3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CC16693D2D21EE66006B9CA3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC16694E2D21EE67006B9CA3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC1669582D21EE67006B9CA3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CC1669542D21EE67006B9CA3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CC1669402D21EE66006B9CA3 /* Vinyl Scrobbler */;
+			targetProxy = CC1669532D21EE67006B9CA3 /* PBXContainerItemProxy */;
+		};
+		CC16695E2D21EE67006B9CA3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CC1669402D21EE66006B9CA3 /* Vinyl Scrobbler */;
+			targetProxy = CC16695D2D21EE67006B9CA3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		CC1669642D21EE67006B9CA3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CC1669652D21EE67006B9CA3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		CC1669672D21EE67006B9CA3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Vinyl Scrobbler/Vinyl_Scrobbler.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 478SKTUXHT;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Vinyl Scrobbler";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "russmckendrick.Vinyl-Scrobbler";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		CC1669682D21EE67006B9CA3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Vinyl Scrobbler/Vinyl_Scrobbler.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 478SKTUXHT;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Vinyl Scrobbler";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "russmckendrick.Vinyl-Scrobbler";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		CC16696A2D21EE67006B9CA3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 478SKTUXHT;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "russmckendrick.Vinyl-ScrobblerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vinyl Scrobbler.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vinyl Scrobbler";
+			};
+			name = Debug;
+		};
+		CC16696B2D21EE67006B9CA3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 478SKTUXHT;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "russmckendrick.Vinyl-ScrobblerTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Vinyl Scrobbler.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vinyl Scrobbler";
+			};
+			name = Release;
+		};
+		CC16696D2D21EE67006B9CA3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 478SKTUXHT;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "russmckendrick.Vinyl-ScrobblerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Vinyl Scrobbler";
+			};
+			name = Debug;
+		};
+		CC16696E2D21EE67006B9CA3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 478SKTUXHT;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "russmckendrick.Vinyl-ScrobblerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Vinyl Scrobbler";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CC16693C2D21EE66006B9CA3 /* Build configuration list for PBXProject "Vinyl Scrobbler" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC1669642D21EE67006B9CA3 /* Debug */,
+				CC1669652D21EE67006B9CA3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC1669662D21EE67006B9CA3 /* Build configuration list for PBXNativeTarget "Vinyl Scrobbler" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC1669672D21EE67006B9CA3 /* Debug */,
+				CC1669682D21EE67006B9CA3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC1669692D21EE67006B9CA3 /* Build configuration list for PBXNativeTarget "Vinyl ScrobblerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC16696A2D21EE67006B9CA3 /* Debug */,
+				CC16696B2D21EE67006B9CA3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC16696C2D21EE67006B9CA3 /* Build configuration list for PBXNativeTarget "Vinyl ScrobblerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC16696D2D21EE67006B9CA3 /* Debug */,
+				CC16696E2D21EE67006B9CA3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		CC16697D2D21EFF8006B9CA3 /* XCLocalSwiftPackageReference "../ScrobbleKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../ScrobbleKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CC16697E2D21EFF8006B9CA3 /* ScrobbleKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScrobbleKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = CC1669392D21EE66006B9CA3 /* Project object */;
+}
