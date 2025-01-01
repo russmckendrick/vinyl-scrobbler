@@ -1,8 +1,0 @@
-pyobjc-core
-pyobjc-framework-Cocoa
-pyobjc-framework-UserNotifications
-pylast
-discogs-client
-requests
-py2app
-charset_normalizer
