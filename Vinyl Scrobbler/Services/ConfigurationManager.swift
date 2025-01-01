@@ -1,24 +1,17 @@
 import Foundation
 import os
 
-// MARK: - Configuration Models
-struct Configuration: Codable {
-    let discogsToken: String
-    let lastFMAPIKey: String
-    let lastFMSecret: String
-    
-    private enum CodingKeys: String, CodingKey {
-        case discogsToken
-        case lastFMAPIKey = "lastFMApiKey"
-        case lastFMSecret
-    }
-}
-
 // MARK: - Configuration Manager
+// Manages and validates API credentials for Discogs and Last.fm
 class ConfigurationManager {
+    // Singleton instance
     static let shared = ConfigurationManager()
+    
+    // Logger for configuration-related events
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "ConfigurationManager")
     
+    // MARK: - Properties
+    // Convenience accessors for secure configuration
     var discogsToken: String? {
         SecureConfig.discogsToken
     }
@@ -31,10 +24,13 @@ class ConfigurationManager {
         SecureConfig.lastFMSecret
     }
     
+    // MARK: - Initialization
     private init() {
         validateConfiguration()
     }
     
+    // MARK: - Private Methods
+    // Validate that all required API credentials are present
     private func validateConfiguration() {
         guard discogsToken != nil,
               lastFMAPIKey != nil,
