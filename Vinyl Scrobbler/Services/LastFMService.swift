@@ -3,6 +3,8 @@ import OSLog
 import CryptoKit
 import ScrobbleKit
 
+// MARK: - Extensions
+// Add MD5 hashing capability to String for Last.fm API authentication
 extension String {
     var md5: String {
         let computed = Insecure.MD5.hash(data: self.data(using: .utf8)!)
@@ -10,6 +12,8 @@ extension String {
     }
 }
 
+// MARK: - Error Handling
+// Custom errors for Last.fm API operations
 enum LastFMError: LocalizedError {
     case configurationMissing
     case invalidSessionKey
@@ -21,6 +25,7 @@ enum LastFMError: LocalizedError {
     case missingApiKey
     
     var errorDescription: String? {
+        // Error descriptions for user-friendly messages
         switch self {
         case .configurationMissing:
             return "Last.fm configuration is missing"
@@ -43,10 +48,12 @@ enum LastFMError: LocalizedError {
 }
 
 // MARK: - Response Models
+// Models for parsing Last.fm API responses
 struct LastFMResponse: Codable {
     let album: AlbumInfo
 }
 
+// Album information from Last.fm
 struct AlbumInfo: Codable {
     let name: String
     let artist: String
@@ -57,11 +64,13 @@ struct AlbumInfo: Codable {
     let wiki: String?
     let images: [AlbumImage]?
     
+    // Custom coding keys for JSON mapping
     private enum CodingKeys: String, CodingKey {
         case name, artist, url, playcount, listeners, tracks, wiki
         case images = "image"
     }
     
+    // Custom decoder to handle Last.fm's nested JSON structure
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
@@ -93,6 +102,7 @@ struct AlbumInfo: Codable {
     }
 }
 
+// Wrapper structures for nested JSON
 struct TracksWrapper: Codable {
     let track: [AlbumTrack]
 }
@@ -101,6 +111,7 @@ struct WikiWrapper: Codable {
     let summary: String
 }
 
+// Album artwork information
 struct AlbumImage: Codable {
     let url: String
     let size: String
@@ -111,6 +122,7 @@ struct AlbumImage: Codable {
     }
 }
 
+// Track information from Last.fm
 struct AlbumTrack: Codable {
     let name: String
     let duration: String?
@@ -120,6 +132,7 @@ struct AlbumTrack: Codable {
         case duration
     }
     
+    // Custom decoder to handle duration conversion
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
@@ -128,24 +141,29 @@ struct AlbumTrack: Codable {
             let seconds = durationSeconds % 60
             duration = String(format: "%d:%02d", minutes, seconds)
         } else {
-            duration = "3:00"  // Use default duration if LastFM doesn't provide one
+            duration = "3:00"  // Default duration if not provided
         }
     }
 }
 
+// MARK: - Last.fm Service
+// Main service class for Last.fm API interactions
 @MainActor
 class LastFMService {
+    // Singleton instance
     static let shared = LastFMService()
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "LastFMService")
     private let session: URLSession
     private var manager: SBKManager?
     
+    // MARK: - Initialization
     private init() {
         let config = URLSessionConfiguration.default
         session = URLSession(configuration: config)
         setupScrobbleKit()
     }
     
+    // Configure ScrobbleKit with API credentials
     private func setupScrobbleKit() {
         guard let apiKey = SecureConfig.lastFMAPIKey,
               let secret = SecureConfig.lastFMSecret else {
@@ -165,6 +183,8 @@ class LastFMService {
         }
     }
     
+    // MARK: - Authentication
+    // Authenticate user with Last.fm
     func authenticate(username: String, password: String) async throws {
         guard let manager = manager else {
             throw LastFMError.configurationMissing
@@ -187,6 +207,7 @@ class LastFMService {
         }
     }
     
+    // Store session key securely in keychain
     private func storeSessionKey(_ key: String) async throws {
         // First remove any existing key
         let removeQuery: [String: Any] = [
@@ -210,6 +231,8 @@ class LastFMService {
         }
     }
     
+    // MARK: - Scrobbling
+    // Submit track play to Last.fm
     public func scrobbleTrack(track: AppDelegate.Track) async throws {
         guard let manager = manager else {
             throw LastFMError.configurationMissing
@@ -262,6 +285,7 @@ class LastFMService {
         }
     }
     
+    // Update Now Playing information
     public func updateNowPlaying(track: AppDelegate.Track) async throws {
         guard let manager = manager else {
             throw LastFMError.configurationMissing
@@ -310,6 +334,7 @@ class LastFMService {
         }
     }
     
+    // Scrobble track with specific timestamp
     public func scrobbleArtist(artist: String, track: String, album: String, duration: Int, timestamp: Date) async throws {
         guard let manager = manager else {
             throw LastFMError.configurationMissing
@@ -352,6 +377,8 @@ class LastFMService {
         }
     }
     
+    // MARK: - Album Information
+    // Fetch album details from Last.fm
     public func getAlbumInfo(artist: String, album: String) async throws -> AlbumInfo {
         guard let apiKey = SecureConfig.lastFMAPIKey else {
             throw LastFMError.missingApiKey
@@ -390,6 +417,8 @@ class LastFMService {
         }
     }
     
+    // MARK: - Utility Methods
+    // Convert duration string to seconds
     private func convertDurationToSeconds(_ duration: String?) -> Int? {
         guard let duration = duration else { return nil }
         let components = duration.split(separator: ":")
@@ -401,11 +430,14 @@ class LastFMService {
         return minutes * 60 + seconds
     }
     
+    // MARK: - Session Management
+    // Set active session key
     public func setSessionKey(_ key: String) {
         manager?.setSessionKey(key)
         logger.info("Set Last.fm session key (length: \(key.count) characters)")
     }
     
+    // Retrieve stored session key from keychain
     public func getStoredSessionKey() -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -427,6 +459,7 @@ class LastFMService {
         return nil
     }
     
+    // Start new session with credentials
     public func startSession(username: String, password: String) async throws -> (key: String?, name: String?) {
         guard let manager = manager else {
             throw LastFMError.configurationMissing
@@ -462,6 +495,7 @@ class LastFMService {
         }
     }
     
+    // Clear current session
     @MainActor
     func clearSession() {
         manager?.setSessionKey("")

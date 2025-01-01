@@ -4,6 +4,7 @@ import AppKit
 import Network
 
 // MARK: - Models
+// Response models for Discogs API data
 struct DiscogsRelease: Codable {
     let id: Int
     let title: String
@@ -12,26 +13,31 @@ struct DiscogsRelease: Codable {
     let year: Int?
     let images: [Image]?
     
+    // Artist information from release
     struct Artist: Codable {
         let name: String
     }
     
+    // Track information from release
     struct Track: Codable {
         let position: String
         let title: String
         let duration: String?
     }
     
+    // Image information from release
     struct Image: Codable {
         let uri: String
         let type: String
     }
 }
 
+// Search response structure from Discogs API
 struct DiscogsSearchResponse: Codable {
     let results: [SearchResult]
     let pagination: Pagination
     
+    // Individual search result
     struct SearchResult: Codable {
         let id: Int
         let title: String
@@ -43,6 +49,7 @@ struct DiscogsSearchResponse: Codable {
         let country: String?
     }
     
+    // Pagination information
     struct Pagination: Codable {
         let page: Int
         let pages: Int
@@ -50,7 +57,8 @@ struct DiscogsSearchResponse: Codable {
     }
 }
 
-// MARK: - Errors
+// MARK: - Error Handling
+// Custom errors for Discogs API operations
 enum DiscogsError: LocalizedError {
     case invalidInput
     case invalidURL
@@ -83,13 +91,24 @@ enum DiscogsError: LocalizedError {
     }
 }
 
+// MARK: - Discogs Service
+// Handles all interactions with the Discogs API
 class DiscogsService {
+    // Singleton instance
     static let shared = DiscogsService()
+    
+    // Logger for service operations
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "DiscogsService")
+    
+    // URLSession for API requests
     private let session: URLSession
+    
+    // User agent string for API requests
     private let userAgent = "VinylScrobbler/1.0 +https://github.com/russmckendrick/vinyl-scrobbler"
     
+    // MARK: - Initialization
     private init() {
+        // Configure URLSession with headers
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
             "User-Agent": userAgent,
@@ -98,6 +117,9 @@ class DiscogsService {
         session = URLSession(configuration: config, delegate: DiscogsURLSessionDelegate(), delegateQueue: nil)
     }
     
+    // MARK: - Public Methods
+    
+    // Extract release ID from various input formats (URL, ID, [r123456])
     func extractReleaseId(from input: String) async throws -> String {
         // Check if input is already a release ID number
         if let _ = Int(input) {
@@ -131,6 +153,7 @@ class DiscogsService {
         throw DiscogsError.invalidInput
     }
     
+    // Load release details from Discogs API
     func loadRelease(_ releaseId: String) async throws -> DiscogsRelease {
         guard let url = URL(string: "https://api.discogs.com/releases/\(releaseId)") else {
             throw DiscogsError.invalidURL
@@ -200,6 +223,7 @@ class DiscogsService {
         }
     }
     
+    // Fetch album artwork
     func fetchImage(url: URL) async throws -> NSImage? {
         do {
             let (data, response) = try await self.session.data(from: url)
@@ -228,6 +252,7 @@ class DiscogsService {
         }
     }
     
+    // Search for releases on Discogs
     func searchReleases(_ query: String, page: Int = 1) async throws -> DiscogsSearchResponse {
         var components = URLComponents(string: "https://api.discogs.com/database/search")
         
@@ -298,11 +323,13 @@ class DiscogsService {
     }
 }
 
+// MARK: - URLSession Delegate
 // Custom URLSession delegate to handle SSL/TLS validation
 class DiscogsURLSessionDelegate: NSObject, URLSessionDelegate {
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "DiscogsURLSessionDelegate")
     
-    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, 
+    func urlSession(_ session: URLSession, 
+                   didReceive challenge: URLAuthenticationChallenge, 
                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         
         guard let serverTrust = challenge.protectionSpace.serverTrust else {
