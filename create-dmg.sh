@@ -11,7 +11,7 @@ ICON_PATH="/tmp/icon.icns"
 
 # Get the script's directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ICON_SOURCE="$SCRIPT_DIR/Vinyl Scrobbler/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+ICON_SOURCE="$SCRIPT_DIR/Vinyl Scrobbler/Assets.xcassets/AppIcon.appiconset/1024-mac.png"
 
 # Check for required tools and install if needed
 check_and_install_tools() {
