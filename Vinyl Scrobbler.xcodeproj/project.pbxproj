@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		CC16697F2D21EFF8006B9CA3 /* ScrobbleKit in Frameworks */ = {isa = PBXBuildFile; productRef = CC16697E2D21EFF8006B9CA3 /* ScrobbleKit */; };
+		CCAF793C2D293E4800B76191 /* ScrobbleKit in Frameworks */ = {isa = PBXBuildFile; productRef = CCAF793B2D293E4800B76191 /* ScrobbleKit */; };
+		CCAF793F2D293E9D00B76191 /* ScrobbleKit in Frameworks */ = {isa = PBXBuildFile; productRef = CCAF793E2D293E9D00B76191 /* ScrobbleKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,7 +59,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CCAF793F2D293E9D00B76191 /* ScrobbleKit in Frameworks */,
 				CC16697F2D21EFF8006B9CA3 /* ScrobbleKit in Frameworks */,
+				CCAF793C2D293E4800B76191 /* ScrobbleKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -128,6 +132,8 @@
 			name = "Vinyl Scrobbler";
 			packageProductDependencies = (
 				CC16697E2D21EFF8006B9CA3 /* ScrobbleKit */,
+				CCAF793B2D293E4800B76191 /* ScrobbleKit */,
+				CCAF793E2D293E9D00B76191 /* ScrobbleKit */,
 			);
 			productName = "Vinyl Scrobbler";
 			productReference = CC1669412D21EE66006B9CA3 /* Vinyl Scrobbler.app */;
@@ -212,7 +218,7 @@
 			mainGroup = CC1669382D21EE66006B9CA3;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				CC16697D2D21EFF8006B9CA3 /* XCLocalSwiftPackageReference "../ScrobbleKit" */,
+				CCAF793D2D293E9D00B76191 /* XCLocalSwiftPackageReference "../ScrobbleKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CC1669422D21EE66006B9CA3 /* Products */;
@@ -429,8 +435,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "russmckendrick.Vinyl-Scrobbler";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.russmckendrick.vinyl-scrobbler";
+				PRODUCT_NAME = "Vinyl Scrobbler";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -459,8 +465,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "russmckendrick.Vinyl-Scrobbler";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.russmckendrick.vinyl-scrobbler";
+				PRODUCT_NAME = "Vinyl Scrobbler";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -576,7 +582,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		CC16697D2D21EFF8006B9CA3 /* XCLocalSwiftPackageReference "../ScrobbleKit" */ = {
+		CCAF793D2D293E9D00B76191 /* XCLocalSwiftPackageReference "../ScrobbleKit" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../ScrobbleKit;
 		};
@@ -584,6 +590,14 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		CC16697E2D21EFF8006B9CA3 /* ScrobbleKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScrobbleKit;
+		};
+		CCAF793B2D293E4800B76191 /* ScrobbleKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScrobbleKit;
+		};
+		CCAF793E2D293E9D00B76191 /* ScrobbleKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ScrobbleKit;
 		};
