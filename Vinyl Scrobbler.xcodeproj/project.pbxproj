@@ -10,6 +10,7 @@
 		CC16697F2D21EFF8006B9CA3 /* ScrobbleKit in Frameworks */ = {isa = PBXBuildFile; productRef = CC16697E2D21EFF8006B9CA3 /* ScrobbleKit */; };
 		CCAF793C2D293E4800B76191 /* ScrobbleKit in Frameworks */ = {isa = PBXBuildFile; productRef = CCAF793B2D293E4800B76191 /* ScrobbleKit */; };
 		CCAF793F2D293E9D00B76191 /* ScrobbleKit in Frameworks */ = {isa = PBXBuildFile; productRef = CCAF793E2D293E9D00B76191 /* ScrobbleKit */; };
+		CCAF79BB2D293FAA00B76191 /* ScrobbleKit in Frameworks */ = {isa = PBXBuildFile; productRef = CCAF79BA2D293FAA00B76191 /* ScrobbleKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +63,7 @@
 				CCAF793F2D293E9D00B76191 /* ScrobbleKit in Frameworks */,
 				CC16697F2D21EFF8006B9CA3 /* ScrobbleKit in Frameworks */,
 				CCAF793C2D293E4800B76191 /* ScrobbleKit in Frameworks */,
+				CCAF79BB2D293FAA00B76191 /* ScrobbleKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -134,6 +136,7 @@
 				CC16697E2D21EFF8006B9CA3 /* ScrobbleKit */,
 				CCAF793B2D293E4800B76191 /* ScrobbleKit */,
 				CCAF793E2D293E9D00B76191 /* ScrobbleKit */,
+				CCAF79BA2D293FAA00B76191 /* ScrobbleKit */,
 			);
 			productName = "Vinyl Scrobbler";
 			productReference = CC1669412D21EE66006B9CA3 /* Vinyl Scrobbler.app */;
@@ -218,7 +221,7 @@
 			mainGroup = CC1669382D21EE66006B9CA3;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				CCAF793D2D293E9D00B76191 /* XCLocalSwiftPackageReference "../ScrobbleKit" */,
+				CCAF79B92D293FAA00B76191 /* XCLocalSwiftPackageReference "../ScrobbleKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CC1669422D21EE66006B9CA3 /* Products */;
@@ -582,7 +585,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		CCAF793D2D293E9D00B76191 /* XCLocalSwiftPackageReference "../ScrobbleKit" */ = {
+		CCAF79B92D293FAA00B76191 /* XCLocalSwiftPackageReference "../ScrobbleKit" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../ScrobbleKit;
 		};
@@ -598,6 +601,10 @@
 			productName = ScrobbleKit;
 		};
 		CCAF793E2D293E9D00B76191 /* ScrobbleKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ScrobbleKit;
+		};
+		CCAF79BA2D293FAA00B76191 /* ScrobbleKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ScrobbleKit;
 		};
