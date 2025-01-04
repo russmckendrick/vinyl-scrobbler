@@ -69,5 +69,11 @@
     <!-- Hide Dock icon if set true (Agent app style) -->
     <key>LSUIElement</key>
     <true/>
+
+    <!-- Add these keys to your Info.plist -->
+    <key>NSUserNotificationAlertStyle</key>
+    <string>alert</string>
+    <key>NSUserNotificationUsageDescription</key>
+    <string>We need to send you notifications about your scrobbling activity</string>
 </dict>
 </plist>

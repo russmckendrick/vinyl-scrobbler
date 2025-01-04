@@ -10,5 +10,13 @@
     <true/>
     <key>com.apple.security.network.client</key>
     <true/>
+    <key>com.apple.security.temporary-exception.apple-events</key>
+    <array>
+        <string>com.apple.systemevents</string>
+    </array>
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>com.russmckendrick.vinyl-scrobbler</string>
+    </array>
 </dict>
 </plist>
