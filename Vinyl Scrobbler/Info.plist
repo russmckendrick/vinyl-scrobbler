@@ -2,29 +2,29 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- Primary language -->
-    <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
-
     <!-- Executable name (matches PRODUCT_NAME) -->
     <key>CFBundleExecutable</key>
     <string>Vinyl Scrobbler</string>
 
-    <!-- App icon file (unused if using Assets; can remain empty) -->
-    <key>CFBundleIconFile</key>
-    <string></string>
+    <!-- Display name (often the same as PRODUCT_NAME) -->
+    <key>CFBundleName</key>
+    <string>Vinyl Scrobbler</string>
 
     <!-- Bundle identifier -->
     <key>CFBundleIdentifier</key>
     <string>com.russmckendrick.vinyl-scrobbler</string>
 
+    <!-- Primary language -->
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+
     <!-- Info dictionary version -->
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
 
-    <!-- Display name (often the same as PRODUCT_NAME) -->
-    <key>CFBundleName</key>
-    <string>Vinyl Scrobbler</string>
+    <!-- App icon file (unused if using Assets; can remain empty) -->
+    <key>CFBundleIconFile</key>
+    <string></string>
 
     <!-- Package type for macOS apps -->
     <key>CFBundlePackageType</key>
