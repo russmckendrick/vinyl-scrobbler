@@ -438,7 +438,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // GitHub link
         let linkButton = NSButton(frame: NSRect(x: 0, y: 40, width: 300, height: 20))
-        linkButton.title = "github.com/russmckendrick/vinyl-scrobbler"
+        linkButton.title = "www.vinyl-scrobbler.app"
         linkButton.bezelStyle = .inline
         linkButton.isBordered = false
         linkButton.alignment = .center

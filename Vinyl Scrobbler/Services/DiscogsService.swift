@@ -104,7 +104,7 @@ class DiscogsService {
     private let session: URLSession
     
     // User agent string for API requests
-    private let userAgent = "VinylScrobbler/1.0 +https://github.com/russmckendrick/vinyl-scrobbler"
+    private let userAgent = "VinylScrobbler/1.0 +https://gwww.vinyl-scrobbler.app/"
     
     // MARK: - Initialization
     private init() {
