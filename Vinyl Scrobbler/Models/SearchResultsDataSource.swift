@@ -8,6 +8,7 @@ class SearchResultsDataSource: NSObject, NSTableViewDataSource, NSTableViewDeleg
     private var results: [DiscogsSearchResponse.SearchResult]
     // Callback for when a result is selected
     let selectionCallback: (DiscogsSearchResponse.SearchResult) -> Void
+    private weak var tableView: NSTableView?
     
     // MARK: - Initialization
     init(results: [DiscogsSearchResponse.SearchResult], 
@@ -21,6 +22,7 @@ class SearchResultsDataSource: NSObject, NSTableViewDataSource, NSTableViewDeleg
     // Update the results array and trigger a table refresh
     func update(results: [DiscogsSearchResponse.SearchResult]) {
         self.results = results
+        tableView?.reloadData()
     }
     
     // MARK: - TableView DataSource
@@ -31,6 +33,9 @@ class SearchResultsDataSource: NSObject, NSTableViewDataSource, NSTableViewDeleg
     
     // Configure and return cells for the table
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        // Store reference to table view for updates
+        self.tableView = tableView
+        
         let result = results[row]
         
         switch tableColumn?.identifier.rawValue {

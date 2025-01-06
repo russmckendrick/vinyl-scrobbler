@@ -73,6 +73,31 @@ class SearchWindowController: NSWindowController, NSWindowDelegate {
             currentPage: pagination.page,
             totalPages: pagination.pages
         )
+        
+        // Find and update pagination buttons by searching all subviews
+        if let window = self.window {
+            // Recursively search for buttons
+            func findButtons(in view: NSView) -> [NSButton] {
+                var buttons: [NSButton] = []
+                for subview in view.subviews {
+                    if let button = subview as? NSButton {
+                        if button.title == "Previous" || button.title == "Next" {
+                            buttons.append(button)
+                        }
+                    }
+                    buttons.append(contentsOf: findButtons(in: subview))
+                }
+                return buttons
+            }
+            
+            let buttons = findButtons(in: window.contentView!)
+            let previousButton = buttons.first { $0.title == "Previous" }
+            let nextButton = buttons.first { $0.title == "Next" }
+            
+            // Update button states based on current page
+            previousButton?.isEnabled = pagination.page > 1
+            nextButton?.isEnabled = pagination.page < pagination.pages
+        }
     }
     
     // MARK: - Private Methods

@@ -1551,7 +1551,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     // Add handlers
     @objc private func handlePreviousPage() {
-        if let state = searchWindowController?.currentState {
+        if let state = searchWindowController?.currentState,
+           state.currentPage > 1 {  // Only proceed if we're not on the first page
             Task {
                 await performSearch(state.query, page: state.currentPage - 1)
             }
@@ -1559,7 +1560,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc private func handleNextPage() {
-        if let state = searchWindowController?.currentState {
+        if let state = searchWindowController?.currentState,
+           state.currentPage < state.totalPages {  // Only proceed if we're not on the last page
             Task {
                 await performSearch(state.query, page: state.currentPage + 1)
             }
