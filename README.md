@@ -1,9 +1,8 @@
 # Vinyl Scrobbler
 
-> [!CAUTION]
-> This is a personal project, its probably not for you and provided as is. Run at your own risk. It is however signed and notarized so it should be safe to run.
+A simple macOS application to scrobble vinyl records to Last.fm, now on the Mac App Store ...
 
-A simple macOS application to scrobble vinyl records to Last.fm.
+[![Download on the App Store](https://toolbox.marketingtools.apple.com/api/v2/badges/download-on-the-app-store/black/en-us?releaseDate=1736380800)](https://apps.apple.com/gb/app/vinyl-scrobbler/id6740146205?mt=12&itscg=30200&itsct=apps_box_badge&mttnsubad=6740146205)
 
 ## About
 
@@ -20,7 +19,6 @@ See https://www.instagram.com/reel/DCzAQBuSGUt/?igsh=eTJrY2xjd2F2OWpw for why I 
 - Player window with track-by-track scrobbling and artwork
 - Track-by-track scrobbling
 - Visual countdown timer for each track
-- Support for multi-artist releases
 
 ## Requirements
 
@@ -29,13 +27,12 @@ See https://www.instagram.com/reel/DCzAQBuSGUt/?igsh=eTJrY2xjd2F2OWpw for why I 
 
 ## Installation
 
-1. Download the latest release from the [releases page](https://github.com/russmckendrick/vinyl-scrobbler/releases)
-2. Mount the DMG and drag Vinyl Scrobbler to your Applications folder
-3. Configure your Last.fm and Discogs credentials a per the Configuration section below
+1. Download the latest release from the [App Store](https://apps.apple.com/gb/app/vinyl-scrobbler/id6740146205?mt=12&itscg=30200&itsct=apps_box_badge&mttnsubad=6740146205)
+2. Configure your Last.fm and Discogs credentials as per the Configuration section below
 
 ### Configuration
 
-On first run, the app will create ask for KeyChain access, and you will need to then sign into Last.fm by clicking selecting the "LastFM Account > Sign In" option in the menu bar.
+On the first run, the app will ask for KeyChain access, and you will need to then sign into Last.fm by selecting the "LastFM Account > Sign In" option in the menu bar.
 
 ## Contributing
 
