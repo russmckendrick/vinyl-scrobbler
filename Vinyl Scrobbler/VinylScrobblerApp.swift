@@ -16,7 +16,7 @@ struct VinylScrobblerApp: App {
         .commands {
             CommandMenu("Window") {
                 Button("Show Player") {
-                    NSApp.activate(ignoringOtherApps: true)
+                    showMainWindow()
                 }
                 .keyboardShortcut("p", modifiers: [.command, .shift])
             }
@@ -42,6 +42,7 @@ struct VinylScrobblerApp: App {
         MenuBarExtra {
             Button("Load Album") {
                 appState.showDiscogsSearch = true
+                showMainWindow()
             }
             .keyboardShortcut("l", modifiers: [.command])
             
@@ -66,6 +67,7 @@ struct VinylScrobblerApp: App {
             
             Button("Settings") {
                 appState.showSettings = true
+                showMainWindow()
             }
             .keyboardShortcut(",", modifiers: [.command])
             
@@ -73,11 +75,14 @@ struct VinylScrobblerApp: App {
             
             Button("About") {
                 appState.showAbout = true
+                showMainWindow()
             }
             
             Divider()
             
-            Button("Show Player") { }
+            Button("Show Player") {
+                showMainWindow()
+            }
             .keyboardShortcut("p", modifiers: [.command, .shift])
             
             Divider()
@@ -91,5 +96,23 @@ struct VinylScrobblerApp: App {
                 .symbolRenderingMode(.hierarchical)
                 .help("Vinyl Scrobbler")
         }
+    }
+}
+
+struct WindowOpenerView: View {
+    @Environment(\.openWindow) private var openWindow
+    
+    var body: some View {
+        Color.clear
+            .onAppear {
+                openWindow(id: "main")
+            }
+    }
+}
+
+extension VinylScrobblerApp {
+    private func showMainWindow() {
+        @Environment(\.openWindow) var openWindow
+        openWindow(id: "main")
     }
 } 
