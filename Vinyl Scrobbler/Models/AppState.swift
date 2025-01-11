@@ -355,5 +355,6 @@ class AppState: ObservableObject {
     func toggleWindowVisibility() {
         windowVisible.toggle()
         showPlayer = windowVisible
+        print("🔄 Window visibility toggled: \(windowVisible ? "visible" : "hidden")")
     }
 } 

@@ -38,6 +38,7 @@ struct VinylScrobblerApp: App {
 struct MenuBarView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
     
     var body: some View {
         Button("Load Album") {
@@ -101,10 +102,11 @@ struct MenuBarView: View {
         
         Divider()
         
-        Button("Show Player") {
-            print("🎵 Show Player clicked - Window visible: \(appState.windowVisible)")
-            if !appState.windowVisible {
-                print("📱 Opening main window")
+        Button(appState.windowVisible ? "Hide Player" : "Show Player") {
+            print("🎵 \(appState.windowVisible ? "Hide" : "Show") Player clicked")
+            if appState.windowVisible {
+                dismissWindow(id: "main")
+            } else {
                 openWindow(id: "main")
             }
         }
