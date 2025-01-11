@@ -95,6 +95,7 @@ class AppState: ObservableObject {
     private func resetPlayback() {
         currentPlaybackSeconds = 0
         shouldScrobble = true
+        print("🔄 Reset playback - Scrobbling enabled")
         if isPlaying {
             stopPlayback()
             startPlayback()
@@ -107,24 +108,41 @@ class AppState: ObservableObject {
         // Check for scrobbling threshold (50% of track or 4 minutes)
         if let track = currentTrack,
            let duration = track.durationSeconds,
-           shouldScrobble,
-           (currentPlaybackSeconds >= duration / 2 || currentPlaybackSeconds >= 240) {
-            scrobbleCurrentTrack()
-            shouldScrobble = false  // Prevent multiple scrobbles of the same track
+           shouldScrobble {
+            // Only log at significant percentages
+            if currentPlaybackSeconds == duration / 4 ||
+               currentPlaybackSeconds == duration / 2 ||
+               currentPlaybackSeconds == (duration * 3) / 4 {
+                print("⏱️ Track progress: \(currentPlaybackSeconds)s / \(duration)s")
+            }
+            
+            if currentPlaybackSeconds >= duration / 2 || currentPlaybackSeconds >= 240 {
+                print("🎵 Scrobble threshold reached (\(currentPlaybackSeconds)s)")
+                scrobbleCurrentTrack()
+                shouldScrobble = false  // Prevent multiple scrobbles of the same track
+            }
         }
         
         // Handle track completion
         if let track = currentTrack,
            let duration = track.durationSeconds,
            currentPlaybackSeconds >= duration {
+            print("✅ Track completed: \(track.title)")
             if currentTrackIndex < tracks.count - 1 {
                 nextTrack()
                 startPlayback()  // Ensure playback continues
-                updateNowPlaying()
+                updateNowPlaying()  // Update Now Playing status for the new track
             } else {
-                // Stop playback at the end of the album
+                // Stop playback at the end of the album and reset to first track
                 isPlaying = false
                 stopPlayback()
+                
+                // Sort tracks and select the first one
+                let sortedTracks = tracks.sorted { $0.position < $1.position }
+                if let firstTrack = sortedTracks.first {
+                    currentTrack = firstTrack
+                    updateCurrentTrackIndex(for: firstTrack)
+                }
             }
         }
     }
@@ -134,6 +152,7 @@ class AppState: ObservableObject {
         
         Task {
             do {
+                print("🎵 Updating Now Playing: \(track.title)")
                 try await lastFMService.updateNowPlaying(track: track)
             } catch {
                 print("Failed to update Now Playing: \(error.localizedDescription)")
@@ -146,8 +165,9 @@ class AppState: ObservableObject {
         
         Task {
             do {
+                print("📝 Scrobbling track: \(track.title)")
                 try await lastFMService.scrobbleTrack(track: track)
-                print("Successfully scrobbled: \(track.title)")
+                print("✅ Successfully scrobbled: \(track.title)")
                 
                 // Check if notifications are enabled
                 if UserDefaults.standard.bool(forKey: "enableNotifications") {
@@ -165,7 +185,7 @@ class AppState: ObservableObject {
                     try? await UNUserNotificationCenter.current().add(request)
                 }
             } catch {
-                print("Failed to scrobble track: \(error.localizedDescription)")
+                print("❌ Failed to scrobble track: \(error.localizedDescription)")
             }
         }
     }
