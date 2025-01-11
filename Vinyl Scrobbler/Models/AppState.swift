@@ -212,7 +212,8 @@ class AppState: ObservableObject {
         }
     }
     
-    private func fetchUserInfo() async {
+    @MainActor
+    func fetchUserInfo() async {
         do {
             lastFMUser = try await lastFMService.getUserInfo()
         } catch {

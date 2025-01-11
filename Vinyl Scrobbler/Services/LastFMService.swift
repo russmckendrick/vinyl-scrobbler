@@ -411,6 +411,18 @@ class LastFMService {
     @MainActor
     func clearSession() {
         manager?.setSessionKey("")
-        logger.info("Cleared Last.fm session")
+        
+        // Remove session key from keychain
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "lastfm_session_key"
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+        
+        if status != errSecSuccess && status != errSecItemNotFound {
+            logger.error("Failed to remove session key from keychain: \(status)")
+        } else {
+            logger.info("Cleared Last.fm session and removed from keychain")
+        }
     }
 }
