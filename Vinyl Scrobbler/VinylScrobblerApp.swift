@@ -1,9 +1,19 @@
 import SwiftUI
 import UserNotifications
+import os.log
 
 @main
 struct VinylScrobblerApp: App {
     @StateObject private var appState = AppState()
+    
+    init() {
+        // Suppress ViewBridge warnings
+        let viewBridgeLogCategory = "com.apple.ViewBridge"
+        let subsystem = Bundle.main.bundleIdentifier ?? "com.vinyl.scrobbler"
+        let logger = Logger(subsystem: subsystem, category: viewBridgeLogCategory)
+        logger.critical("Suppressing ViewBridge warnings")
+        setbuf(stdout, nil)
+    }
     
     var body: some Scene {
         WindowGroup(id: "main") {

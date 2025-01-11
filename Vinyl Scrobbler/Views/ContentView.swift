@@ -23,7 +23,8 @@ struct ContentView: View {
         .frame(minWidth: 500, minHeight: 700)
         .sheet(isPresented: $appState.showDiscogsSearch) {
             DiscogsSearchView()
-                .frame(width: 400, height: 300)
+                .frame(width: 500, height: 400)
+                .background(Color(.windowBackgroundColor))
         }
         .sheet(isPresented: $appState.showLastFMAuth) {
             LastFMAuthView()

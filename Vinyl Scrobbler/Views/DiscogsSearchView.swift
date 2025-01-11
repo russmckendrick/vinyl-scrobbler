@@ -20,15 +20,14 @@ struct DiscogsSearchView: View {
             SearchBar(text: $input) {
                 performSearch()
             }
-            .padding(.horizontal)
             
             if isLoading {
                 ProgressView()
                     .controlSize(.small)
             } else if viewModel.showResults {
                 // Search results
-                ScrollView {
-                    LazyVStack(spacing: 8) {
+                ScrollView(.vertical, showsIndicators: true) {
+                    LazyVStack(spacing: 12) {
                         ForEach(viewModel.results, id: \.id) { result in
                             DiscogsResultRow(result: result)
                                 .contentShape(Rectangle())
@@ -37,7 +36,6 @@ struct DiscogsSearchView: View {
                                 }
                         }
                     }
-                    .padding(.horizontal)
                 }
             } else {
                 Text("Enter a Discogs release ID, URL, or search for an album")
@@ -45,7 +43,8 @@ struct DiscogsSearchView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .frame(width: 500, height: 600)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) { }
         } message: {
