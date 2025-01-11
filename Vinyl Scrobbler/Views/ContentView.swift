@@ -46,12 +46,6 @@ struct ContentView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
-            .environmentObject(AppState(previewTrack: Track(
-                position: "A1",
-                title: "Sample Track",
-                duration: "3:45",
-                artist: "Sample Artist",
-                album: "Sample Album"
-            )))
+            .environmentObject(AppState())
     }
 } 

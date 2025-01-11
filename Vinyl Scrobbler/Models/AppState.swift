@@ -240,6 +240,20 @@ class AppState: ObservableObject {
             self.tracks = [track]
         }
     }
+    
+    // MARK: - Preview Helpers
+    static var previewWithTracks: AppState {
+        let state = AppState()
+        state.tracks = [
+            Track(position: "A1", title: "Track One", duration: "3:45", artist: "Artist", album: "Album"),
+            Track(position: "A2", title: "Track Two", duration: "4:30", artist: "Artist", album: "Album"),
+            Track(position: "A3", title: "Track Three", duration: "5:15", artist: "Artist", album: "Album"),
+            Track(position: "B1", title: "Track Four", duration: "3:20", artist: "Artist", album: "Album"),
+            Track(position: "B2", title: "Track Five", duration: "4:10", artist: "Artist", album: "Album")
+        ]
+        state.currentTrack = state.tracks.first
+        return state
+    }
     #endif
     
     // Helper method to update currentTrackIndex based on sorted position

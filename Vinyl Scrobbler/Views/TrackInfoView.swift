@@ -68,21 +68,7 @@ struct TrackInfoView_Previews: PreviewProvider {
         Group {
             // Preview with track
             TrackInfoView()
-                .environmentObject(AppState(previewTrack: Track(
-                    position: "A1",
-                    title: "Sample Track",
-                    duration: "3:45",
-                    artist: "Sample Artist",
-                    album: "Sample Album"
-                )))
-                .previewDisplayName("With Track")
-            
-            // Preview without track
-            TrackInfoView()
                 .environmentObject(AppState())
-                .previewDisplayName("No Track")
         }
-        .padding()
-        .frame(width: 400)
     }
 } 

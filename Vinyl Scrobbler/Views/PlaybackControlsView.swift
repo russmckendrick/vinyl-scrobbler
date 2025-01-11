@@ -60,11 +60,5 @@ struct PlaybackControlsView: View {
 
 #Preview {
     PlaybackControlsView()
-        .environmentObject(AppState(previewTrack: Track(
-            position: "A1",
-            title: "Sample Track",
-            duration: "3:45",
-            artist: "Sample Artist",
-            album: "Sample Album"
-        )))
+        .environmentObject(AppState())
 } 

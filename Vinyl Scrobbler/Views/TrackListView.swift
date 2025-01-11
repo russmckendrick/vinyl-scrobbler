@@ -78,39 +78,7 @@ struct TrackListView_Previews: PreviewProvider {
         Group {
             // Preview with tracks
             TrackListView()
-                .environmentObject(AppState(previewTrack: Track(
-                    position: "A1",
-                    title: "Sample Track",
-                    duration: "3:45",
-                    artist: "Sample Artist",
-                    album: "Sample Album"
-                )))
-                .previewDisplayName("With Tracks")
-            
-            // Preview without tracks
-            TrackListView()
                 .environmentObject(AppState())
-                .previewDisplayName("No Tracks")
         }
-        .frame(height: 400)
-        .padding()
     }
-}
-
-// MARK: - Preview Helper
-extension AppState {
-    #if DEBUG
-    static var previewWithTracks: AppState {
-        let state = AppState()
-        state.tracks = [
-            Track(position: "A1", title: "Track One", duration: "3:45", artist: "Artist", album: "Album"),
-            Track(position: "A2", title: "Track Two", duration: "4:30", artist: "Artist", album: "Album"),
-            Track(position: "A3", title: "Track Three", duration: "5:15", artist: "Artist", album: "Album"),
-            Track(position: "B1", title: "Track Four", duration: "3:20", artist: "Artist", album: "Album"),
-            Track(position: "B2", title: "Track Five", duration: "4:10", artist: "Artist", album: "Album")
-        ]
-        state.currentTrack = state.tracks.first
-        return state
-    }
-    #endif
 } 
