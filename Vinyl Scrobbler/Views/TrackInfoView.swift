@@ -14,11 +14,21 @@ struct TrackInfoView: View {
                     .truncationMode(.tail)
                 
                 // Album title
-                Text(track.album)
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                HStack(spacing: 8) {
+                    Text(track.album)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    
+                    // Discogs icon
+                    if let discogsURLString = appState.discogsURI, let discogsURL = URL(string: discogsURLString) {
+                        Link(destination: discogsURL) {
+                            Image(systemName: "link.circle.fill")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
                 
                 // Artist name
                 Text(track.artist)

@@ -8,6 +8,7 @@ struct DiscogsRelease: Codable {
     let tracklist: [Track]
     let year: Int?
     let images: [Image]?
+    let uri: String?
     
     // Artist information from release
     struct Artist: Codable {

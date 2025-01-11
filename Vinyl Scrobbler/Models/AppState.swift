@@ -16,6 +16,7 @@ class AppState: ObservableObject {
     @Published var showSettings = false
     @Published var isAuthenticated = false
     @Published var lastFMUser: SBKUser?
+    @Published var discogsURI: String?
     
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
@@ -25,6 +26,7 @@ class AppState: ObservableObject {
     init() {
         self.lastFMService = LastFMService.shared
         self.discogsService = DiscogsService.shared
+        self.discogsService.configure(with: self)
         checkLastFMAuth()
         
         // Request notification permission

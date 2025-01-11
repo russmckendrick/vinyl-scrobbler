@@ -8,6 +8,7 @@ class DiscogsService {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let userAgent = "VinylScrobbler/1.0 +https://www.vinyl-scrobbler.app/"
+    private var appState: AppState?
     
     private init() {
         let config = URLSessionConfiguration.default
@@ -19,6 +20,10 @@ class DiscogsService {
         
         decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
+    }
+    
+    func configure(with appState: AppState) {
+        self.appState = appState
     }
     
     // MARK: - API Methods
@@ -48,6 +53,9 @@ class DiscogsService {
         do {
             let release = try decoder.decode(DiscogsRelease.self, from: data)
             
+            // Set the Discogs URI in AppState
+            appState?.discogsURI = release.uri
+            
             // Log release details
             logger.info("✅ Successfully loaded release: \(release.title)")
             logger.debug("""
@@ -58,6 +66,7 @@ class DiscogsService {
                 - Year: \(release.year ?? 0)
                 - Number of tracks: \(release.tracklist.count)
                 - Has artwork: \(release.images?.isEmpty == false ? "Yes" : "No")
+                - URI: \(release.uri ?? "N/A")
                 """)
             
             // Log track details
@@ -233,7 +242,7 @@ class DiscogsService {
             // Use Discogs duration if available, otherwise use Last.fm duration, finally fallback to "3:00"
             let finalDuration = initialDuration ?? lastFmDuration ?? "3:00"
             
-            var track = Track(
+            let track = Track(
                 position: trackInfo.position,
                 title: trackInfo.title,
                 duration: finalDuration,
