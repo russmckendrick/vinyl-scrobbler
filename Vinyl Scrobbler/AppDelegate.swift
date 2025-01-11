@@ -11,7 +11,6 @@ extension Array {
     }
 }
 
-@main
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     
@@ -101,7 +100,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Hide dock icon
         NSApp.setActivationPolicy(.accessory)
         
-        // Setup menu bar with everything disabled initially
+        // Setup menu bar
         createStatusItem()
         
         // Start with everything disabled
@@ -110,36 +109,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Request notification permissions
         requestNotificationPermissions()
         
-        // Check for Last.fm authentication first - don't show login window automatically
+        // Check for Last.fm authentication
         Task {
-            // Check if we have a valid session key
             if let sessionKey = LastFMService.shared.getStoredSessionKey() {
-                // We have a stored session key, use it
                 LastFMService.shared.setSessionKey(sessionKey)
                 logger.info("✅ Loaded stored Last.fm session key")
                 updateLastFmMenuItems()
-                enableMenuItems(true)  // Enable menu items since we're logged in
+                enableMenuItems(true)
             } else {
-                // No stored session - keep everything disabled except essential items
                 updateLastFmMenuItems()
                 enableMenuItems(false)
             }
         }
-        
-        // Initialize window but keep it hidden
-        if let windowController = NSStoryboard.main?.instantiateInitialController() as? NSWindowController {
-            mainWindow = windowController.window
-            mainWindow?.orderOut(nil)  // Make sure window is hidden
-        }
-        
-        NotificationCenter.default.addObserver(self, 
-                                         selector: #selector(handlePreviousPage), 
-                                         name: NSNotification.Name("LoadPreviousPage"), 
-                                         object: nil)
-        NotificationCenter.default.addObserver(self, 
-                                         selector: #selector(handleNextPage), 
-                                         name: NSNotification.Name("LoadNextPage"), 
-                                         object: nil)
     }
     
     func applicationWillTerminate(_ notification: Notification) {
@@ -384,30 +365,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func togglePlayerWindow(_ sender: Any?) {
-        logger.info("🪟 togglePlayerWindow called")
-        
-        guard let mainViewController = self.mainViewController else {
-            logger.error("❌ mainViewController is nil")
-            return
-        }
-        
-        let isVisible = mainViewController.isPlayerWindowVisible
-        logger.info("🪟 Current window visibility: \(isVisible)")
-        
-        if isVisible {
-            logger.info("🪟 Hiding window")
-            mainViewController.hidePlayerWindow()
-        } else {
-            logger.info("🪟 Showing window")
-            // Ensure window exists and has proper delegate
-            if let window = mainWindow {
-                window.delegate = mainViewController
-                mainViewController.showPlayerWindow()
+        if let window = NSApp.windows.first(where: { $0.title == "Vinyl Scrobbler" }) {
+            if window.isVisible {
+                window.orderOut(nil)
+            } else {
+                window.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
             }
+        } else {
+            let window = NSWindow.createStandardWindow()
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
         }
-        
         updateMenuItemsForWindowState()
-        logger.info("🪟 Window toggle completed")
     }
     
     @objc func showAbout(_ sender: Any?) {

@@ -2,8 +2,9 @@ import Foundation
 
 // MARK: - Track Model
 // Represents a single track from an album with its metadata
-public struct Track {
+public struct Track: Identifiable {
     // MARK: - Properties
+    public let id = UUID()
     // Position or track number on the album (e.g., "A1", "1", "B2")
     public let position: String
     
@@ -41,5 +42,12 @@ public struct Track {
         self.duration = duration
         self.artist = artist
         self.album = album
+    }
+}
+
+// MARK: - Equatable
+extension Track: Equatable {
+    public static func == (lhs: Track, rhs: Track) -> Bool {
+        lhs.id == rhs.id
     }
 } 

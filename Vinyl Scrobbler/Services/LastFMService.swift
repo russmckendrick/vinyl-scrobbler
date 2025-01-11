@@ -151,7 +151,7 @@ struct AlbumTrack: Codable {
 @MainActor
 class LastFMService {
     // Singleton instance
-    static let shared = LastFMService()
+    @MainActor static let shared = LastFMService()
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "LastFMService")
     private let session: URLSession
     private var manager: SBKManager?
