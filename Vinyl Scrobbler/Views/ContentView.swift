@@ -1,8 +1,9 @@
 import SwiftUI
-import AppKit
+import UserNotifications
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.openWindow) private var openWindow
     
     var body: some View {
         VStack(spacing: 24) {
@@ -33,6 +34,10 @@ struct ContentView: View {
         }
         .sheet(isPresented: $appState.showSettings) {
             SettingsView()
+        }
+        .task {
+            // Request notification permissions on first launch
+            try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         }
     }
 }
