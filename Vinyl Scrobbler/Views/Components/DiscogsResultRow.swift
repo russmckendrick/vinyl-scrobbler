@@ -20,42 +20,63 @@ struct DiscogsResultRow: View {
             // Info
             VStack(alignment: .leading, spacing: 4) {
                 Text(result.title)
-                    .font(.headline)
+                    .fontWeight(.medium)
                     .lineLimit(1)
                 
-                HStack {
+                HStack(spacing: 8) {
                     if let year = result.year {
                         Text(year)
+                            .foregroundColor(.secondary)
                     }
-                    if let format = result.format?.joined(separator: ", ") {
-                        Text("•")
+                    
+                    if let format = result.format?.first {
                         Text(format)
+                            .foregroundColor(.secondary)
                     }
                 }
                 .font(.caption)
-                .foregroundColor(.secondary)
             }
             
             Spacer()
             
+            // Add button
             Image(systemName: "plus.circle.fill")
-                .font(.title2)
                 .foregroundColor(.accentColor)
+                .font(.title2)
         }
-        .contentShape(Rectangle())
+        .padding(8)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(8)
     }
 }
 
 #Preview {
     DiscogsResultRow(result: DiscogsSearchResult(
-        id: 1234,
-        title: "Sample Album",
-        year: "2024",
-        label: ["Sample Label"],
-        type: "release",
-        format: ["Vinyl", "LP"],
+        style: ["Rock", "Alternative"],
         thumb: nil,
-        country: "US"
+        title: "Sample Album",
+        country: "US",
+        format: ["Vinyl", "LP"],
+        uri: "/release/1-Sample-Album",
+        community: Community(want: 100, have: 50),
+        label: ["Sample Label"],
+        catno: "ABC-123",
+        year: "2023",
+        genre: ["Rock"],
+        resourceUrl: "https://api.discogs.com/releases/1",
+        type: "release",
+        id: 1,
+        barcode: ["123456789"],
+        masterUrl: nil,
+        masterId: nil,
+        formatQuantity: 1,
+        coverImage: nil,
+        formats: [DiscogsSearchResult.Format(
+            name: "Vinyl",
+            qty: "1",
+            text: "180 Gram",
+            descriptions: ["LP", "Album"]
+        )]
     ))
     .padding()
 } 

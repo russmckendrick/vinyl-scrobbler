@@ -6,6 +6,7 @@ class DiscogsService {
     static let shared = DiscogsService()
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "DiscogsService")
     private let session: URLSession
+    private let decoder: JSONDecoder
     
     private init() {
         let config = URLSessionConfiguration.default
@@ -14,10 +15,13 @@ class DiscogsService {
             "Authorization": "Discogs token=\(SecureConfig.discogsToken ?? "")"
         ]
         session = URLSession(configuration: config)
+        
+        decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
     }
     
     // MARK: - API Methods
-    func loadRelease(_ id: String) async throws -> DiscogsRelease {
+    func loadRelease(_ id: Int) async throws -> DiscogsRelease {
         let url = URL(string: "https://api.discogs.com/releases/\(id)")!
         let (data, response) = try await session.data(from: url)
         
@@ -30,10 +34,13 @@ class DiscogsService {
         }
         
         do {
-            let decoder = JSONDecoder()
             return try decoder.decode(DiscogsRelease.self, from: data)
         } catch {
             logger.error("Failed to decode Discogs release: \(error.localizedDescription)")
+            logger.error("Error details: \(error)")
+            if let dataString = String(data: data, encoding: .utf8) {
+                logger.debug("Response data: \(dataString)")
+            }
             throw DiscogsError.decodingError(error)
         }
     }
@@ -61,12 +68,39 @@ class DiscogsService {
         }
         
         do {
-            let decoder = JSONDecoder()
             return try decoder.decode(DiscogsSearchResponse.self, from: data)
         } catch {
             logger.error("Failed to decode Discogs search response: \(error.localizedDescription)")
+            logger.error("Error details: \(error)")
+            if let dataString = String(data: data, encoding: .utf8) {
+                logger.debug("Response data: \(dataString)")
+            }
             throw DiscogsError.decodingError(error)
         }
+    }
+    
+    func extractReleaseId(from input: String) async throws -> Int {
+        // First try to parse as a direct ID
+        if let id = Int(input) {
+            return id
+        }
+        
+        // Try to parse as URL
+        guard let url = URL(string: input) else {
+            throw DiscogsError.invalidInput("Invalid URL or release ID format")
+        }
+        
+        // Extract release ID from URL path
+        let pathComponents = url.pathComponents
+        
+        // Look for "release" or "releases" in the path
+        if let releaseIndex = pathComponents.firstIndex(where: { $0 == "release" || $0 == "releases" }),
+           releaseIndex + 1 < pathComponents.count,
+           let releaseId = Int(pathComponents[releaseIndex + 1]) {
+            return releaseId
+        }
+        
+        throw DiscogsError.invalidInput("Could not find release ID in URL")
     }
 }
 
@@ -77,6 +111,7 @@ enum DiscogsError: LocalizedError {
     case httpError(Int)
     case decodingError(Error)
     case missingToken
+    case invalidInput(String)
     
     var errorDescription: String? {
         switch self {
@@ -90,6 +125,8 @@ enum DiscogsError: LocalizedError {
             return "Failed to decode response: \(error.localizedDescription)"
         case .missingToken:
             return "Missing Discogs API token"
+        case .invalidInput(let message):
+            return "Invalid input: \(message)"
         }
     }
 }

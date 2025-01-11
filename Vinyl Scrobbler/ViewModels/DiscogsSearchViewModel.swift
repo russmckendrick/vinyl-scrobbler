@@ -25,7 +25,7 @@ class DiscogsSearchViewModel: ObservableObject {
     func selectRelease(_ result: DiscogsSearchResult) async throws {
         guard let appState = appState else { return }
         
-        let release = try await discogsService.loadRelease(String(result.id))
+        let release = try await discogsService.loadRelease(result.id)
         
         // Convert Discogs release to app tracks
         let tracks = release.tracklist.map { track in

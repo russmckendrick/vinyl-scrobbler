@@ -5,14 +5,14 @@ import Cocoa
 class SearchResultsDataSource: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     // MARK: - Properties
     // Array of search results from Discogs
-    private var results: [DiscogsSearchResponse.SearchResult]
+    private var results: [DiscogsSearchResult]
     // Callback for when a result is selected
-    let selectionCallback: (DiscogsSearchResponse.SearchResult) -> Void
+    let selectionCallback: (DiscogsSearchResult) -> Void
     private weak var tableView: NSTableView?
     
     // MARK: - Initialization
-    init(results: [DiscogsSearchResponse.SearchResult], 
-         selectionCallback: @escaping (DiscogsSearchResponse.SearchResult) -> Void) {
+    init(results: [DiscogsSearchResult], 
+         selectionCallback: @escaping (DiscogsSearchResult) -> Void) {
         self.results = results
         self.selectionCallback = selectionCallback
         super.init()
@@ -20,7 +20,7 @@ class SearchResultsDataSource: NSObject, NSTableViewDataSource, NSTableViewDeleg
     
     // MARK: - Public Methods
     // Update the results array and trigger a table refresh
-    func update(results: [DiscogsSearchResponse.SearchResult]) {
+    func update(results: [DiscogsSearchResult]) {
         self.results = results
         tableView?.reloadData()
     }

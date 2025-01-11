@@ -11,6 +11,7 @@ class AppState: ObservableObject {
     @Published var showDiscogsSearch = false
     @Published var showAbout = false
     @Published var showLastFMAuth = false
+    @Published var isAuthenticated = false
     
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
@@ -83,9 +84,17 @@ class AppState: ObservableObject {
         if let sessionKey = lastFMService.getStoredSessionKey(),
            !sessionKey.isEmpty {
             showLastFMAuth = false
+            isAuthenticated = true
         } else {
             showLastFMAuth = true
+            isAuthenticated = false
         }
+    }
+    
+    func signOut() {
+        lastFMService.clearSession()
+        isAuthenticated = false
+        showLastFMAuth = true
     }
     
     #if DEBUG

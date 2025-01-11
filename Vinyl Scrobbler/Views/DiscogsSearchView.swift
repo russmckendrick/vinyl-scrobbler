@@ -10,12 +10,22 @@ struct DiscogsSearchView: View {
     @State private var errorMessage = ""
     
     var body: some View {
-        NavigationView {
-            VStack {
-                // Search field
-                SearchBar(text: $searchText, onCommit: performSearch)
-                    .padding()
+        VStack(spacing: 0) {
+            // Search header
+            VStack(spacing: 16) {
+                Text("Search Discogs")
+                    .font(.title2)
+                    .fontWeight(.semibold)
                 
+                SearchBar(text: $searchText, onCommit: performSearch)
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            // Results area
+            ZStack {
                 if viewModel.isLoading {
                     ProgressView("Searching...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -25,27 +35,32 @@ struct DiscogsSearchView: View {
                         systemImage: "magnifyingglass",
                         description: Text("Try a different search term")
                     )
+                } else if viewModel.results.isEmpty {
+                    ContentUnavailableView(
+                        "Search Discogs",
+                        systemImage: "magnifyingglass",
+                        description: Text("Enter an album name to search")
+                    )
                 } else {
-                    // Results list
-                    List(viewModel.results) { result in
-                        DiscogsResultRow(result: result)
-                            .onTapGesture {
-                                Task {
-                                    await selectRelease(result)
-                                }
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(viewModel.results) { result in
+                                DiscogsResultRow(result: result)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        Task {
+                                            await selectRelease(result)
+                                        }
+                                    }
+                                    .padding(.horizontal)
                             }
-                    }
-                }
-            }
-            .navigationTitle("Search Discogs")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
+                        }
+                        .padding(.vertical, 8)
                     }
                 }
             }
         }
+        .frame(width: 600, height: 400)
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -62,9 +77,9 @@ struct DiscogsSearchView: View {
         }
     }
     
-    private func selectRelease(_ result: DiscogsSearchResponse.SearchResult) async {
+    private func selectRelease(_ result: DiscogsSearchResult) async {
         do {
-            await viewModel.selectRelease(result)
+            try await viewModel.selectRelease(result)
             await MainActor.run {
                 dismiss()
             }

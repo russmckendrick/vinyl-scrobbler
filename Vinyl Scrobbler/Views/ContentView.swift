@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
@@ -20,6 +21,7 @@ struct ContentView: View {
                 .frame(maxHeight: .infinity)
         }
         .padding(20)
+        .frame(minWidth: 500, minHeight: 700)
         .sheet(isPresented: $appState.showDiscogsSearch) {
             DiscogsSearchView()
         }
