@@ -17,6 +17,8 @@ class AppState: ObservableObject {
     @Published var isAuthenticated = false
     @Published var lastFMUser: SBKUser?
     @Published var discogsURI: String?
+    @Published var showPlayer = true  // Start with the player visible
+    @Published var windowVisible = true  // Track actual window visibility
     
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
@@ -347,5 +349,10 @@ class AppState: ObservableObject {
         shouldScrobble = true
         
         print("✅ Loaded release: \(release.title) with \(tracks.count) tracks")
+    }
+    
+    func toggleWindowVisibility() {
+        windowVisible.toggle()
+        showPlayer = windowVisible
     }
 } 
