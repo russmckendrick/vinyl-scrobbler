@@ -53,26 +53,7 @@ struct MenuBarView: View {
             }
         }
         .keyboardShortcut("l", modifiers: [.command])
-        
-        Divider()
-        
-        Button("Previous Track") {
-            appState.previousTrack()
-        }
-        .keyboardShortcut(.leftArrow, modifiers: [.command])
-        
-        Button("Play/Pause") {
-            appState.togglePlayPause()
-        }
-        .keyboardShortcut(.space, modifiers: [.command])
-        
-        Button("Next Track") {
-            appState.nextTrack()
-        }
-        .keyboardShortcut(.rightArrow, modifiers: [.command])
-        
-        Divider()
-        
+
         Button("Settings") {
             print("⚙️ Settings clicked - Window visible: \(appState.windowVisible)")
             if !appState.windowVisible {
@@ -85,7 +66,17 @@ struct MenuBarView: View {
             }
         }
         .keyboardShortcut(",", modifiers: [.command])
-        
+
+         Button(appState.windowVisible ? "Hide Player" : "Show Player") {
+            print("🎵 \(appState.windowVisible ? "Hide" : "Show") Player clicked")
+            if appState.windowVisible {
+                dismissWindow(id: "main")
+            } else {
+                openWindow(id: "main")
+            }
+        }
+        .keyboardShortcut("p", modifiers: [.command, .shift])
+
         Divider()
         
         Button("About") {
@@ -99,18 +90,6 @@ struct MenuBarView: View {
                 appState.showAbout = true
             }
         }
-        
-        Divider()
-        
-        Button(appState.windowVisible ? "Hide Player" : "Show Player") {
-            print("🎵 \(appState.windowVisible ? "Hide" : "Show") Player clicked")
-            if appState.windowVisible {
-                dismissWindow(id: "main")
-            } else {
-                openWindow(id: "main")
-            }
-        }
-        .keyboardShortcut("p", modifiers: [.command, .shift])
         
         Divider()
         
