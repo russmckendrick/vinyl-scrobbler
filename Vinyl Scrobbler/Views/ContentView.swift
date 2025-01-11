@@ -20,10 +20,10 @@ struct ContentView: View {
                 .frame(maxHeight: .infinity)
         }
         .padding(20)
-        .frame(minWidth: 500, minHeight: 700)
+        .frame(minWidth: 500, minHeight: 800)
         .sheet(isPresented: $appState.showDiscogsSearch) {
             DiscogsSearchView()
-                .frame(width: 500, height: 400)
+                .frame(width: 600, height: 400)
                 .background(Color(.windowBackgroundColor))
         }
         .sheet(isPresented: $appState.showLastFMAuth) {
@@ -32,11 +32,12 @@ struct ContentView: View {
         }
         .sheet(isPresented: $appState.showAbout) {
             AboutView()
-                .frame(width: 400, height: 400)
+                .frame(width: 360, height: 600)
         }
         .sheet(isPresented: $appState.showSettings) {
             SettingsView()
-                .frame(width: 400, height: 300)
+                .frame(width: 400, height: 400)
+                .background(Color(.windowBackgroundColor))
         }
     }
 }

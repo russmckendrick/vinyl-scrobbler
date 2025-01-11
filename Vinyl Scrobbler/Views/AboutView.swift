@@ -6,74 +6,87 @@ struct AboutView: View {
     var body: some View {
         VStack(spacing: 24) {
             // App icon and name
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
                 Image(nsImage: NSImage(named: "AppIcon") ?? NSImage())
                     .resizable()
                     .frame(width: 128, height: 128)
-                    .cornerRadius(16)
+                    .cornerRadius(24)
+                    .shadow(radius: 8, y: 4)
                 
-                Text(AppConfig.name)
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text("Version \(AppConfig.version)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                VStack(spacing: 4) {
+                    Text(AppConfig.name)
+                        .font(.system(size: 24, weight: .bold))
+                    
+                    Text("Version \(AppConfig.version)")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
             }
             
             // Description
             Text(AppConfig.description)
+                .font(.system(size: 14))
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             
             // Credits
-            VStack(spacing: 16) {
+            VStack(spacing: 8) {
                 Text("Created by")
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                 
                 Text(AppConfig.author)
-                    .font(.headline)
+                    .font(.system(size: 16, weight: .medium))
                 
                 Text("© \(AppConfig.year)")
-                    .font(.caption)
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
             
             // Links
-            VStack(spacing: 12) {
-                Link(destination: URL(string: AppConfig.githubURL)!) {
-                    HStack {
-                        Image(systemName: "link")
-                        Text("Website")
-                    }
-                }
+            VStack(spacing: 10) {
+                LinkButton(
+                    title: "Website",
+                    icon: "link",
+                    url: AppConfig.githubURL
+                )
                 
-                Link(destination: URL(string: "https://www.last.fm")!) {
-                    HStack {
-                        Image(systemName: "music.note")
-                        Text("Last.fm")
-                    }
-                }
+                LinkButton(
+                    title: "Last.fm",
+                    icon: "music.note",
+                    url: "https://www.last.fm"
+                )
                 
-                Link(destination: URL(string: "https://www.discogs.com")!) {
-                    HStack {
-                        Image(systemName: "record.circle")
-                        Text("Discogs")
-                    }
-                }
+                LinkButton(
+                    title: "Discogs",
+                    icon: "record.circle",
+                    url: "https://www.discogs.com"
+                )
             }
-            .buttonStyle(.bordered)
-            
-            // Close button
-            Button("Close") {
-                dismiss()
-            }
-            .keyboardShortcut(.defaultAction)
         }
-        .padding(32)
-        .frame(width: 320)
-        .fixedSize()
+        .padding(24)
+        .frame(width: 360, height: 600)
+    }
+}
+
+// MARK: - Link Button
+struct LinkButton: View {
+    let title: String
+    let icon: String
+    let url: String
+    
+    var body: some View {
+        Link(destination: URL(string: url)!) {
+            HStack {
+                Image(systemName: icon)
+                Text(title)
+            }
+            .frame(width: 200)
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.large)
     }
 }
 

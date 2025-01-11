@@ -19,6 +19,7 @@ class AppState: ObservableObject {
     @Published var discogsURI: String?
     @Published var showPlayer = true  // Start with the player visible
     @Published var windowVisible = true  // Track actual window visibility
+    @Published var currentRelease: DiscogsRelease?
     
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
