@@ -38,7 +38,7 @@ struct AlbumArtworkView_Previews: PreviewProvider {
     static var previews: some View {
         AlbumArtworkView()
             .environmentObject(AppState())
-            .frame(height: 300)
+            .frame(height: 400)
             .padding()
     }
 } 

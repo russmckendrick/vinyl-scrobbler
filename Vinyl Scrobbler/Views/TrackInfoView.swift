@@ -24,8 +24,8 @@ struct TrackInfoView: View {
                     // Discogs icon
                     if let discogsURLString = appState.discogsURI, let discogsURL = URL(string: discogsURLString) {
                         Link(destination: discogsURL) {
-                            Image(systemName: "link.circle.fill")
-                                .foregroundColor(.blue)
+                            Image(systemName: "link.circle")
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
