@@ -19,9 +19,9 @@ struct VinylScrobblerApp: App {
         WindowGroup(id: "main") {
             MainView()
                 .environmentObject(appState)
-                .frame(minWidth: 500, minHeight: 700)
+                .frame(minWidth: 500, minHeight: 800)
         }
-        .defaultSize(width: 500, height: 700)
+        .defaultSize(width: 500, height: 800)
         .windowStyle(.hiddenTitleBar)
         
         MenuBarExtra {
