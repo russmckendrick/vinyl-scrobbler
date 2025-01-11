@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import ScrobbleKit
+import UserNotifications
 
 @MainActor
 class AppState: ObservableObject {
@@ -25,6 +26,11 @@ class AppState: ObservableObject {
         self.lastFMService = LastFMService.shared
         self.discogsService = DiscogsService.shared
         checkLastFMAuth()
+        
+        // Request notification permission
+        Task {
+            try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        }
     }
     
     func togglePlayPause() {
@@ -95,7 +101,15 @@ class AppState: ObservableObject {
         if let track = currentTrack,
            let duration = track.durationSeconds,
            currentPlaybackSeconds >= duration {
-            nextTrack()
+            if currentTrackIndex < tracks.count - 1 {
+                nextTrack()
+                startPlayback()  // Ensure playback continues
+                updateNowPlaying()
+            } else {
+                // Stop playback at the end of the album
+                isPlaying = false
+                stopPlayback()
+            }
         }
     }
     
@@ -118,6 +132,22 @@ class AppState: ObservableObject {
             do {
                 try await lastFMService.scrobbleTrack(track: track)
                 print("Successfully scrobbled: \(track.title)")
+                
+                // Check if notifications are enabled
+                if UserDefaults.standard.bool(forKey: "enableNotifications") {
+                    let content = UNMutableNotificationContent()
+                    content.title = "Track Scrobbled"
+                    content.subtitle = track.title
+                    content.body = "\(track.artist) - \(track.album)"
+                    
+                    let request = UNNotificationRequest(
+                        identifier: UUID().uuidString,
+                        content: content,
+                        trigger: nil
+                    )
+                    
+                    try? await UNUserNotificationCenter.current().add(request)
+                }
             } catch {
                 print("Failed to scrobble track: \(error.localizedDescription)")
             }
