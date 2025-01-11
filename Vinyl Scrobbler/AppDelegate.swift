@@ -35,6 +35,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(withTitle: "Settings", action: #selector(showSettings), keyEquivalent: ",")
         mainMenu.addItem(NSMenuItem.separator())
         
+        // Last.fm controls
+        let lastFMMenuItem = NSMenuItem(title: "Last.fm", action: nil, keyEquivalent: "")
+        let lastFMSubmenu = NSMenu()
+        lastFMSubmenu.addItem(withTitle: "Sign In", action: #selector(showLastFMAuth), keyEquivalent: "")
+        lastFMSubmenu.addItem(withTitle: "Sign Out", action: #selector(signOutLastFM), keyEquivalent: "")
+        lastFMMenuItem.submenu = lastFMSubmenu
+        mainMenu.addItem(lastFMMenuItem)
+        mainMenu.addItem(NSMenuItem.separator())
+        
         // About and Quit
         mainMenu.addItem(withTitle: "About", action: #selector(showAbout), keyEquivalent: "")
         mainMenu.addItem(NSMenuItem.separator())
@@ -98,6 +107,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAbout() {
         appState.showAbout = true
         showWindow()
+    }
+    
+    @objc func showLastFMAuth() {
+        appState.showLastFMAuth = true
+        showWindow()
+    }
+    
+    @objc func signOutLastFM() {
+        LastFMService.shared.clearSession()
+        appState.isAuthenticated = false
+        appState.showLastFMAuth = true
     }
     
     private func updateStatusIcon() {

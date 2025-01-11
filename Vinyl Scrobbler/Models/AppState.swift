@@ -16,6 +16,7 @@ class AppState: ObservableObject {
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
     private var playbackTimer: Timer?
+    private var shouldScrobble = false
     
     init() {
         self.lastFMService = LastFMService.shared
@@ -27,6 +28,7 @@ class AppState: ObservableObject {
         isPlaying.toggle()
         if isPlaying {
             startPlayback()
+            updateNowPlaying()
         } else {
             stopPlayback()
         }
@@ -37,6 +39,7 @@ class AppState: ObservableObject {
         currentTrackIndex -= 1
         currentTrack = tracks[currentTrackIndex]
         resetPlayback()
+        updateNowPlaying()
     }
     
     func nextTrack() {
@@ -44,10 +47,12 @@ class AppState: ObservableObject {
         currentTrackIndex += 1
         currentTrack = tracks[currentTrackIndex]
         resetPlayback()
+        updateNowPlaying()
     }
     
     private func startPlayback() {
         playbackTimer?.invalidate()
+        shouldScrobble = true
         playbackTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.updatePlayback()
@@ -59,10 +64,12 @@ class AppState: ObservableObject {
         playbackTimer?.invalidate()
         playbackTimer = nil
         currentPlaybackSeconds = 0
+        shouldScrobble = false
     }
     
     private func resetPlayback() {
         currentPlaybackSeconds = 0
+        shouldScrobble = true
         if isPlaying {
             stopPlayback()
             startPlayback()
@@ -72,6 +79,15 @@ class AppState: ObservableObject {
     private func updatePlayback() {
         currentPlaybackSeconds += 1
         
+        // Check for scrobbling threshold (50% of track or 4 minutes)
+        if let track = currentTrack,
+           let duration = track.durationSeconds,
+           shouldScrobble,
+           (currentPlaybackSeconds >= duration / 2 || currentPlaybackSeconds >= 240) {
+            scrobbleCurrentTrack()
+            shouldScrobble = false  // Prevent multiple scrobbles of the same track
+        }
+        
         // Handle track completion
         if let track = currentTrack,
            let duration = track.durationSeconds,
@@ -80,9 +96,35 @@ class AppState: ObservableObject {
         }
     }
     
+    private func updateNowPlaying() {
+        guard isAuthenticated, let track = currentTrack else { return }
+        
+        Task {
+            do {
+                try await lastFMService.updateNowPlaying(track: track)
+            } catch {
+                print("Failed to update Now Playing: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func scrobbleCurrentTrack() {
+        guard isAuthenticated, let track = currentTrack else { return }
+        
+        Task {
+            do {
+                try await lastFMService.scrobbleTrack(track: track)
+                print("Successfully scrobbled: \(track.title)")
+            } catch {
+                print("Failed to scrobble track: \(error.localizedDescription)")
+            }
+        }
+    }
+    
     private func checkLastFMAuth() {
         if let sessionKey = lastFMService.getStoredSessionKey(),
            !sessionKey.isEmpty {
+            lastFMService.setSessionKey(sessionKey)
             showLastFMAuth = false
             isAuthenticated = true
         } else {

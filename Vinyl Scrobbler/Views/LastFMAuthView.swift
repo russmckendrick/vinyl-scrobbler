@@ -66,20 +66,15 @@ struct LastFMAuthView: View {
         
         Task {
             do {
-                let (sessionKey, _) = try await lastFMService.startSession(
+                try await lastFMService.authenticate(
                     username: username,
                     password: password
                 )
                 
-                if let key = sessionKey {
-                    // Store the session key securely
-                    KeychainHelper.saveLastFMSessionKey(key)
-                    
-                    await MainActor.run {
-                        dismiss()
-                    }
-                } else {
-                    errorMessage = "Authentication failed. Please try again."
+                await MainActor.run {
+                    appState.isAuthenticated = true
+                    appState.showLastFMAuth = false
+                    dismiss()
                 }
             } catch {
                 errorMessage = error.localizedDescription
