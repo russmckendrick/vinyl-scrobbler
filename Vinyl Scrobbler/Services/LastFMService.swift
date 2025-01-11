@@ -3,17 +3,7 @@ import OSLog
 import CryptoKit
 import ScrobbleKit
 
-// MARK: - Extensions
-// Add MD5 hashing capability to String for Last.fm API authentication
-extension String {
-    var md5: String {
-        let computed = Insecure.MD5.hash(data: self.data(using: .utf8)!)
-        return computed.map { String(format: "%02hhx", $0) }.joined()
-    }
-}
-
 // MARK: - Error Handling
-// Custom errors for Last.fm API operations
 enum LastFMError: LocalizedError {
     case configurationMissing
     case invalidSessionKey
@@ -25,7 +15,6 @@ enum LastFMError: LocalizedError {
     case missingApiKey
     
     var errorDescription: String? {
-        // Error descriptions for user-friendly messages
         switch self {
         case .configurationMissing:
             return "Last.fm configuration is missing"
@@ -48,12 +37,10 @@ enum LastFMError: LocalizedError {
 }
 
 // MARK: - Response Models
-// Models for parsing Last.fm API responses
 struct LastFMResponse: Codable {
     let album: AlbumInfo
 }
 
-// Album information from Last.fm
 struct AlbumInfo: Codable {
     let name: String
     let artist: String
@@ -64,13 +51,11 @@ struct AlbumInfo: Codable {
     let wiki: String?
     let images: [AlbumImage]?
     
-    // Custom coding keys for JSON mapping
     private enum CodingKeys: String, CodingKey {
         case name, artist, url, playcount, listeners, tracks, wiki
         case images = "image"
     }
     
-    // Custom decoder to handle Last.fm's nested JSON structure
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
@@ -79,21 +64,18 @@ struct AlbumInfo: Codable {
         playcount = try? container.decode(Int.self, forKey: .playcount)
         listeners = try? container.decode(Int.self, forKey: .listeners)
         
-        // Handle tracks wrapper
         if let tracksWrapper = try? container.decode(TracksWrapper.self, forKey: .tracks) {
             tracks = tracksWrapper.track
         } else {
             tracks = []
         }
         
-        // Handle wiki wrapper
         if let wikiWrapper = try? container.decode(WikiWrapper.self, forKey: .wiki) {
             wiki = wikiWrapper.summary
         } else {
             wiki = nil
         }
         
-        // Handle images
         if let imageArray = try? container.decode([AlbumImage].self, forKey: .images) {
             images = imageArray
         } else {
@@ -102,7 +84,6 @@ struct AlbumInfo: Codable {
     }
 }
 
-// Wrapper structures for nested JSON
 struct TracksWrapper: Codable {
     let track: [AlbumTrack]
 }
@@ -111,7 +92,6 @@ struct WikiWrapper: Codable {
     let summary: String
 }
 
-// Album artwork information
 struct AlbumImage: Codable {
     let url: String
     let size: String
@@ -122,7 +102,6 @@ struct AlbumImage: Codable {
     }
 }
 
-// Track information from Last.fm
 struct AlbumTrack: Codable {
     let name: String
     let duration: String?
@@ -132,7 +111,6 @@ struct AlbumTrack: Codable {
         case duration
     }
     
-    // Custom decoder to handle duration conversion
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
@@ -147,23 +125,19 @@ struct AlbumTrack: Codable {
 }
 
 // MARK: - Last.fm Service
-// Main service class for Last.fm API interactions
 @MainActor
 class LastFMService {
-    // Singleton instance
     static let shared = LastFMService()
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "LastFMService")
     private let session: URLSession
     private var manager: SBKManager?
     
-    // MARK: - Initialization
     private init() {
         let config = URLSessionConfiguration.default
         session = URLSession(configuration: config)
         setupScrobbleKit()
     }
     
-    // Configure ScrobbleKit with API credentials
     private func setupScrobbleKit() {
         guard let apiKey = SecureConfig.lastFMAPIKey,
               let secret = SecureConfig.lastFMSecret else {
@@ -176,7 +150,6 @@ class LastFMService {
             secret: secret
         )
         
-        // Check keychain for existing session key
         if let sessionKey = getStoredSessionKey() {
             manager?.setSessionKey(sessionKey)
             logger.info("Loaded existing Last.fm session key from keychain")
@@ -184,20 +157,15 @@ class LastFMService {
     }
     
     // MARK: - Authentication
-    // Authenticate user with Last.fm
     func authenticate(username: String, password: String) async throws {
         guard let manager = manager else {
             throw LastFMError.configurationMissing
         }
         
         do {
-            // Get session from ScrobbleKit
             let response = try await manager.startSession(username: username, password: password)
             
-            // Store session key in keychain
             try await storeSessionKey(response.key)
-            
-            // Set the session key in manager
             manager.setSessionKey(response.key)
             
             logger.info("Authentication successful")
@@ -207,16 +175,13 @@ class LastFMService {
         }
     }
     
-    // Store session key securely in keychain
     private func storeSessionKey(_ key: String) async throws {
-        // First remove any existing key
         let removeQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: "lastfm_session_key"
         ]
         SecItemDelete(removeQuery as CFDictionary)
         
-        // Store new key
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: "lastfm_session_key",
@@ -232,8 +197,7 @@ class LastFMService {
     }
     
     // MARK: - Scrobbling
-    // Submit track play to Last.fm
-    public func scrobbleTrack(track: AppDelegate.Track) async throws {
+    public func scrobbleTrack(track: Track) async throws {
         guard let manager = manager else {
             throw LastFMError.configurationMissing
         }
@@ -252,7 +216,7 @@ class LastFMService {
             let sbkTrack = SBKTrackToScrobble(
                 artist: track.artist,
                 track: track.title,
-                timestamp: Date(),  // Use current time for scrobble
+                timestamp: Date(),
                 album: track.album,
                 duration: durationInSeconds ?? 0
             )
@@ -285,8 +249,7 @@ class LastFMService {
         }
     }
     
-    // Update Now Playing information
-    public func updateNowPlaying(track: AppDelegate.Track) async throws {
+    public func updateNowPlaying(track: Track) async throws {
         guard let manager = manager else {
             throw LastFMError.configurationMissing
         }
@@ -311,7 +274,6 @@ class LastFMService {
             
             logger.info("✅ Now Playing updated on Last.fm")
             
-            // Log any corrections
             if !result.correctedInformation.isEmpty {
                 var correctionLog = ["🔄 Last.fm made the following corrections:"]
                 if let artist = result.correctedInformation[.artist] {
@@ -334,51 +296,7 @@ class LastFMService {
         }
     }
     
-    // Scrobble track with specific timestamp
-    public func scrobbleArtist(artist: String, track: String, album: String, duration: Int, timestamp: Date) async throws {
-        guard let manager = manager else {
-            throw LastFMError.configurationMissing
-        }
-        
-        do {
-            logger.info("Scrobbling track: '\(track)' by \(artist) from album '\(album)'")
-            
-            let trackToScrobble = SBKTrackToScrobble(
-                artist: artist,
-                track: track,
-                timestamp: timestamp,
-                album: album,
-                duration: duration
-            )
-            
-            let response = try await manager.scrobble(tracks: [trackToScrobble])
-            
-            if response.isCompletelySuccessful {
-                logger.info("Track scrobbled successfully!")
-            } else {
-                if let result = response.results.first {
-                    if result.isAccepted {
-                        logger.info("Scrobbled: \(result.track.artist) - \(result.track.track)")
-                        if let correctedArtist = result.correctedArtist {
-                            logger.info("Artist corrected to: \(correctedArtist)")
-                        }
-                        if let correctedTrack = result.correctedTrack {
-                            logger.info("Track corrected to: \(correctedTrack)")
-                        }
-                    } else if let error = result.error {
-                        logger.error("Failed to scrobble \(result.track.artist) - \(result.track.track): \(error.rawValue)")
-                        throw LastFMError.authenticationFailed(error)
-                    }
-                }
-            }
-        } catch {
-            logger.error("Failed to scrobble track: \(error.localizedDescription)")
-            throw error
-        }
-    }
-    
     // MARK: - Album Information
-    // Fetch album details from Last.fm
     public func getAlbumInfo(artist: String, album: String) async throws -> AlbumInfo {
         guard let apiKey = SecureConfig.lastFMAPIKey else {
             throw LastFMError.missingApiKey
@@ -417,8 +335,41 @@ class LastFMService {
         }
     }
     
+    // MARK: - User Information
+    public func getUserInfo() async throws -> SBKUser {
+        guard let manager = manager else {
+            throw LastFMError.configurationMissing
+        }
+        
+        do {
+            logger.debug("🔍 Fetching user information from Last.fm")
+            let user = try await manager.getInfo(forUser: nil)
+            logger.info("✅ Successfully fetched user info for: \(user.username)")
+            return user
+        } catch {
+            logger.error("❌ Failed to fetch user info: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
+    // MARK: - Track Information
+    public func getTrackInfo(artist: String, track: String) async throws -> SBKTrack {
+        guard let manager = manager else {
+            throw LastFMError.configurationMissing
+        }
+        
+        do {
+            logger.debug("🔍 Fetching track info from Last.fm for: \(track) by \(artist)")
+            let trackInfo = try await manager.getInfo(forTrack: track, artist: artist)
+            logger.info("✅ Successfully fetched track info from Last.fm")
+            return trackInfo
+        } catch {
+            logger.error("❌ Failed to fetch track info: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
     // MARK: - Utility Methods
-    // Convert duration string to seconds
     private func convertDurationToSeconds(_ duration: String?) -> Int? {
         guard let duration = duration else { return nil }
         let components = duration.split(separator: ":")
@@ -431,13 +382,11 @@ class LastFMService {
     }
     
     // MARK: - Session Management
-    // Set active session key
     public func setSessionKey(_ key: String) {
         manager?.setSessionKey(key)
         logger.info("Set Last.fm session key (length: \(key.count) characters)")
     }
     
-    // Retrieve stored session key from keychain
     public func getStoredSessionKey() -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -459,46 +408,21 @@ class LastFMService {
         return nil
     }
     
-    // Start new session with credentials
-    public func startSession(username: String, password: String) async throws -> (key: String?, name: String?) {
-        guard let manager = manager else {
-            throw LastFMError.configurationMissing
-        }
-        
-        do {
-            logger.info("🔐 Attempting to authenticate with Last.fm for user: \(username)")
-            let response = try await manager.startSession(username: username, password: password)
-            
-            // Verify we got a valid session key
-            guard !response.key.isEmpty else {
-                logger.error("❌ Received empty session key from Last.fm")
-                throw LastFMError.invalidSessionKey
-            }
-            
-            // Set the session key in the manager
-            manager.setSessionKey(response.key)
-            
-            // Store the session key in keychain
-            do {
-                try await storeSessionKey(response.key)
-            } catch {
-                logger.error("❌ Failed to store session key: \(error.localizedDescription)")
-                // Continue even if keychain storage fails - we still have the key in memory
-            }
-            
-            logger.info("✅ Successfully authenticated with Last.fm")
-            return (response.key, response.name)
-            
-        } catch {
-            logger.error("❌ Authentication failed with error: \(error.localizedDescription)")
-            throw LastFMError.authenticationFailed(error)
-        }
-    }
-    
-    // Clear current session
     @MainActor
     func clearSession() {
         manager?.setSessionKey("")
-        logger.info("Cleared Last.fm session")
+        
+        // Remove session key from keychain
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "lastfm_session_key"
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+        
+        if status != errSecSuccess && status != errSecItemNotFound {
+            logger.error("Failed to remove session key from keychain: \(status)")
+        } else {
+            logger.info("Cleared Last.fm session and removed from keychain")
+        }
     }
 }

@@ -1,194 +1,60 @@
 import Foundation
-import os
-import AppKit
-import Network
+import OSLog
 
-// MARK: - Models
-// Response models for Discogs API data
-struct DiscogsRelease: Codable {
-    let id: Int
-    let title: String
-    let artists: [Artist]
-    let tracklist: [Track]
-    let year: Int?
-    let images: [Image]?
-    
-    // Artist information from release
-    struct Artist: Codable {
-        let name: String
-    }
-    
-    // Track information from release
-    struct Track: Codable {
-        let position: String
-        let title: String
-        let duration: String?
-    }
-    
-    // Image information from release
-    struct Image: Codable {
-        let uri: String
-        let type: String
-    }
-}
-
-// Search response structure from Discogs API
-struct DiscogsSearchResponse: Codable {
-    let results: [SearchResult]
-    let pagination: Pagination
-    
-    // Individual search result
-    struct SearchResult: Codable {
-        let id: Int
-        let title: String
-        let year: String?
-        let thumb: String?
-        let format: [String]?
-        let label: [String]?
-        let type: String
-        let country: String?
-    }
-    
-    // Pagination information
-    struct Pagination: Codable {
-        let page: Int
-        let pages: Int
-        let items: Int
-    }
-}
-
-// MARK: - Error Handling
-// Custom errors for Discogs API operations
-enum DiscogsError: LocalizedError {
-    case invalidInput
-    case invalidURL
-    case invalidResponse
-    case httpError(Int)
-    case decodingError(Error)
-    case missingToken
-    case releaseNotFound
-    case connectionError(String)
-    
-    var errorDescription: String? {
-        switch self {
-        case .invalidInput:
-            return "Invalid input. Please provide a valid Discogs release URL or ID"
-        case .invalidURL:
-            return "Invalid URL for Discogs API request"
-        case .invalidResponse:
-            return "Invalid response from Discogs API"
-        case .httpError(let statusCode):
-            return "HTTP error \(statusCode) from Discogs API"
-        case .decodingError(let error):
-            return "Failed to decode Discogs response: \(error.localizedDescription)"
-        case .missingToken:
-            return "Missing Discogs API token"
-        case .releaseNotFound:
-            return "Release not found on Discogs"
-        case .connectionError(let message):
-            return "Connection error: \(message)"
-        }
-    }
-}
-
-// MARK: - Discogs Service
-// Handles all interactions with the Discogs API
+@MainActor
 class DiscogsService {
-    // Singleton instance
     static let shared = DiscogsService()
-    
-    // Logger for service operations
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "DiscogsService")
-    
-    // URLSession for API requests
     private let session: URLSession
+    private let decoder: JSONDecoder
+    private let userAgent = "VinylScrobbler/1.0 +https://www.vinyl-scrobbler.app/"
+    private var appState: AppState?
     
-    // User agent string for API requests
-    private let userAgent = "VinylScrobbler/1.0 +https://gwww.vinyl-scrobbler.app/"
-    
-    // MARK: - Initialization
     private init() {
-        // Configure URLSession with headers
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
             "User-Agent": userAgent,
             "Authorization": "Discogs token=\(SecureConfig.discogsToken ?? "")"
         ]
-        session = URLSession(configuration: config, delegate: DiscogsURLSessionDelegate(), delegateQueue: nil)
+        session = URLSession(configuration: config)
+        
+        decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
     }
     
-    // MARK: - Public Methods
-    
-    // Extract release ID from various input formats (URL, ID, [r123456])
-    func extractReleaseId(from input: String) async throws -> String {
-        // Check if input is already a release ID number
-        if let _ = Int(input) {
-            return input
-        }
-        
-        // Check if input is in [r123456] format
-        if input.hasPrefix("[r") && input.hasSuffix("]") {
-            let start = input.index(input.startIndex, offsetBy: 2)
-            let end = input.index(input.endIndex, offsetBy: -1)
-            let releaseId = String(input[start..<end])
-            if let _ = Int(releaseId) {
-                return releaseId
-            }
-        }
-        
-        // Check if input is a URL
-        if let url = URL(string: input) {
-            if (url.host == "www.discogs.com" || url.host == "discogs.com"),
-               url.pathComponents.count >= 3,
-               url.pathComponents[1] == "release" {
-                // Extract just the numeric part from the URL path
-                let releaseIdPart = url.pathComponents[2]
-                if let endIndex = releaseIdPart.firstIndex(where: { !$0.isNumber }) {
-                    return String(releaseIdPart[..<endIndex])
-                }
-                return releaseIdPart
-            }
-        }
-        
-        throw DiscogsError.invalidInput
+    func configure(with appState: AppState) {
+        self.appState = appState
     }
     
-    // Load release details from Discogs API
-    func loadRelease(_ releaseId: String) async throws -> DiscogsRelease {
-        guard let url = URL(string: "https://api.discogs.com/releases/\(releaseId)") else {
-            throw DiscogsError.invalidURL
-        }
+    // MARK: - API Methods
+    func loadRelease(_ id: Int) async throws -> DiscogsRelease {
+        let url = URL(string: "https://api.discogs.com/releases/\(id)")!
         
-        logger.info("🎵 Fetching Discogs release: \(releaseId)")
+        logger.info("🎵 Fetching Discogs release: \(id)")
         logger.debug("Request URL: \(url.absoluteString)")
         
-        var request = URLRequest(url: url)
-        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        if let token = ConfigurationManager.shared.discogsToken {
-            request.setValue("Discogs token=\(token)", forHTTPHeaderField: "Authorization")
-            logger.debug("Using Discogs token: \(String(token.prefix(8)))...")
+        let (data, response) = try await session.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            logger.error("❌ Invalid response type from Discogs API")
+            throw DiscogsError.invalidResponse
+        }
+        
+        logger.debug("Response status code: \(httpResponse.statusCode)")
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            logger.error("❌ HTTP error \(httpResponse.statusCode) from Discogs API")
+            if let errorString = String(data: data, encoding: .utf8) {
+                logger.error("Error response: \(errorString)")
+            }
+            throw DiscogsError.httpError(httpResponse.statusCode)
         }
         
         do {
-            let (data, response) = try await session.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                logger.error("❌ Invalid response type from Discogs API")
-                throw DiscogsError.invalidResponse
-            }
-            
-            logger.debug("Response status code: \(httpResponse.statusCode)")
-            
-            guard (200...299).contains(httpResponse.statusCode) else {
-                logger.error("❌ HTTP error \(httpResponse.statusCode) from Discogs API")
-                if let errorString = String(data: data, encoding: .utf8) {
-                    logger.error("Error response: \(errorString)")
-                }
-                throw DiscogsError.httpError(httpResponse.statusCode)
-            }
-            
-            let decoder = JSONDecoder()
             let release = try decoder.decode(DiscogsRelease.self, from: data)
+            
+            // Set the Discogs URI in AppState
+            appState?.discogsURI = release.uri
             
             // Log release details
             logger.info("✅ Successfully loaded release: \(release.title)")
@@ -200,6 +66,7 @@ class DiscogsService {
                 - Year: \(release.year ?? 0)
                 - Number of tracks: \(release.tracklist.count)
                 - Has artwork: \(release.images?.isEmpty == false ? "Yes" : "No")
+                - URI: \(release.uri ?? "N/A")
                 """)
             
             // Log track details
@@ -216,6 +83,9 @@ class DiscogsService {
             return release
         } catch let decodingError as DecodingError {
             logger.error("❌ Failed to decode Discogs response: \(decodingError)")
+            if let dataString = String(data: data, encoding: .utf8) {
+                logger.debug("Response data: \(dataString)")
+            }
             throw DiscogsError.decodingError(decodingError)
         } catch {
             logger.error("❌ Network error loading release: \(error.localizedDescription)")
@@ -223,130 +93,220 @@ class DiscogsService {
         }
     }
     
-    // Fetch album artwork
-    func fetchImage(url: URL) async throws -> NSImage? {
-        do {
-            let (data, response) = try await self.session.data(from: url)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                self.logger.error("Invalid response type")
-                throw DiscogsError.invalidResponse
-            }
-            
-            self.logger.info("Received response with status code: \(httpResponse.statusCode)")
-            
-            switch httpResponse.statusCode {
-            case 200:
-                if let image = NSImage(data: data) {
-                    return image
-                }
-                self.logger.error("Failed to create image from data")
-                throw DiscogsError.decodingError(NSError(domain: "DiscogsService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to create image from data"]))
-            default:
-                self.logger.error("Unexpected status code: \(httpResponse.statusCode)")
-                throw DiscogsError.httpError(httpResponse.statusCode)
-            }
-        } catch {
-            self.logger.error("Network error: \(error.localizedDescription)")
-            throw DiscogsError.connectionError(error.localizedDescription)
-        }
+    // MARK: - Search Parameters
+    struct SearchParameters {
+        let query: String
+        var type: String = "release"
+        var title: String?
+        var releaseTitle: String?
+        var artist: String?
+        var label: String?
+        var genre: String?
+        var style: String?
+        var country: String?
+        var year: String?
+        var format: String?
+        var catno: String?
+        var barcode: String?
+        var track: String?
+        var page: Int = 1
     }
     
-    // Search for releases on Discogs
-    func searchReleases(_ query: String, page: Int = 1) async throws -> DiscogsSearchResponse {
-        var components = URLComponents(string: "https://api.discogs.com/database/search")
-        
-        // Build query parameters
+    func searchReleases(_ parameters: SearchParameters) async throws -> DiscogsSearchResponse {
+        var components = URLComponents(string: "https://api.discogs.com/database/search")!
         var queryItems = [
-            URLQueryItem(name: "q", value: query),
-            URLQueryItem(name: "type", value: "release"),  // Only search for releases
-            URLQueryItem(name: "format", value: "vinyl,album,lp"),  // Focus on vinyl and albums
-            URLQueryItem(name: "per_page", value: "20"),
-            URLQueryItem(name: "page", value: String(page))
+            URLQueryItem(name: "q", value: parameters.query),
+            URLQueryItem(name: "type", value: parameters.type),
+            URLQueryItem(name: "page", value: String(parameters.page))
         ]
         
-        // If query contains a hyphen, it might be "artist - album" format
-        if query.contains("-") {
-            let parts = query.split(separator: "-").map(String.init)
-            if parts.count == 2 {
-                // Clear the general query and use specific fields
-                queryItems = [
-                    URLQueryItem(name: "artist", value: parts[0].trimmingCharacters(in: .whitespaces)),
-                    URLQueryItem(name: "release_title", value: parts[1].trimmingCharacters(in: .whitespaces)),
-                    URLQueryItem(name: "type", value: "release"),
-                    URLQueryItem(name: "format", value: "vinyl,album,lp"),
-                    URLQueryItem(name: "per_page", value: "20"),
-                    URLQueryItem(name: "page", value: String(page))
-                ]
-            }
+        // Add optional parameters if they exist
+        if let title = parameters.title {
+            queryItems.append(URLQueryItem(name: "title", value: title))
+        }
+        if let releaseTitle = parameters.releaseTitle {
+            queryItems.append(URLQueryItem(name: "release_title", value: releaseTitle))
+        }
+        if let artist = parameters.artist {
+            queryItems.append(URLQueryItem(name: "artist", value: artist))
+        }
+        if let label = parameters.label {
+            queryItems.append(URLQueryItem(name: "label", value: label))
+        }
+        if let genre = parameters.genre {
+            queryItems.append(URLQueryItem(name: "genre", value: genre))
+        }
+        if let style = parameters.style {
+            queryItems.append(URLQueryItem(name: "style", value: style))
+        }
+        if let country = parameters.country {
+            queryItems.append(URLQueryItem(name: "country", value: country))
+        }
+        if let year = parameters.year {
+            queryItems.append(URLQueryItem(name: "year", value: year))
+        }
+        if let format = parameters.format {
+            queryItems.append(URLQueryItem(name: "format", value: format))
+        }
+        if let catno = parameters.catno {
+            queryItems.append(URLQueryItem(name: "catno", value: catno))
+        }
+        if let barcode = parameters.barcode {
+            queryItems.append(URLQueryItem(name: "barcode", value: barcode))
+        }
+        if let track = parameters.track {
+            queryItems.append(URLQueryItem(name: "track", value: track))
         }
         
-        components?.queryItems = queryItems
+        components.queryItems = queryItems
         
-        guard let url = components?.url else {
+        guard let url = components.url else {
             throw DiscogsError.invalidURL
         }
         
-        logger.info("🔍 Searching Discogs for: \(query) (Page \(page))")
-        logger.debug("Request URL: \(url.absoluteString)")
+        let (data, response) = try await session.data(from: url)
         
-        var request = URLRequest(url: url)
-        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        if let token = ConfigurationManager.shared.discogsToken {
-            request.setValue("Discogs token=\(token)", forHTTPHeaderField: "Authorization")
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw DiscogsError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw DiscogsError.httpError(httpResponse.statusCode)
         }
         
         do {
-            let (data, response) = try await session.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw DiscogsError.invalidResponse
-            }
-            
-            guard (200...299).contains(httpResponse.statusCode) else {
-                throw DiscogsError.httpError(httpResponse.statusCode)
-            }
-            
-            let decoder = JSONDecoder()
-            let searchResponse = try decoder.decode(DiscogsSearchResponse.self, from: data)
-            
-            logger.info("✅ Found \(searchResponse.results.count) results")
-            return searchResponse
-            
-        } catch let decodingError as DecodingError {
-            logger.error("❌ Failed to decode search response: \(decodingError)")
-            throw DiscogsError.decodingError(decodingError)
+            return try decoder.decode(DiscogsSearchResponse.self, from: data)
         } catch {
-            logger.error("❌ Search failed: \(error.localizedDescription)")
-            throw DiscogsError.connectionError(error.localizedDescription)
+            logger.error("Failed to decode Discogs search response: \(error.localizedDescription)")
+            logger.error("Error details: \(error)")
+            if let dataString = String(data: data, encoding: .utf8) {
+                logger.debug("Response data: \(dataString)")
+            }
+            throw DiscogsError.decodingError(error)
         }
+    }
+    
+    // Convenience method for simple searches
+    func searchReleases(_ query: String, page: Int = 1) async throws -> DiscogsSearchResponse {
+        let parameters = SearchParameters(query: query, page: page)
+        return try await searchReleases(parameters)
+    }
+    
+    func extractReleaseId(from input: String) async throws -> Int {
+        // First try to parse as a direct ID
+        if let id = Int(input) {
+            return id
+        }
+        
+        // Check for [r123456] format
+        if input.hasPrefix("[r") && input.hasSuffix("]") {
+            let start = input.index(input.startIndex, offsetBy: 2)
+            let end = input.index(input.endIndex, offsetBy: -1)
+            let releaseId = String(input[start..<end])
+            if let id = Int(releaseId) {
+                return id
+            }
+        }
+        
+        // Try to parse as URL
+        guard let url = URL(string: input) else {
+            throw DiscogsError.invalidInput("Invalid URL or release ID format")
+        }
+        
+        // Extract release ID from URL path
+        let pathComponents = url.pathComponents
+        
+        // Look for "release" or "releases" in the path
+        if let releaseIndex = pathComponents.firstIndex(where: { $0 == "release" || $0 == "releases" }),
+           releaseIndex + 1 < pathComponents.count,
+           let releaseId = Int(pathComponents[releaseIndex + 1].split(separator: "-").first ?? "") {
+            return releaseId
+        }
+        
+        throw DiscogsError.invalidInput("Could not find release ID in URL")
+    }
+    
+    private func createTracks(from release: DiscogsRelease) async throws -> [Track] {
+        var tracks: [Track] = []
+        logger.info("🎼 Processing Discogs release: \(release.title)")
+        
+        // Try to get Last.fm album info first for artwork and track durations
+        var lastFmAlbumInfo: AlbumInfo? = nil
+        if let artist = release.artists.first?.name {
+            do {
+                lastFmAlbumInfo = try await LastFMService.shared.getAlbumInfo(
+                    artist: artist,
+                    album: release.title
+                )
+                logger.info("✅ Got Last.fm album info with \(lastFmAlbumInfo?.tracks.count ?? 0) tracks")
+            } catch {
+                logger.error("❌ Failed to get Last.fm album info: \(error.localizedDescription)")
+            }
+        }
+        
+        // Process tracks
+        for (index, trackInfo) in release.tracklist.enumerated() {
+            let initialDuration = trackInfo.duration?.isEmpty ?? true ? nil : trackInfo.duration
+            let lastFmDuration = lastFmAlbumInfo?.tracks.indices.contains(index) == true ? lastFmAlbumInfo?.tracks[index].duration : nil
+            
+            // Use Discogs duration if available, otherwise use Last.fm duration, finally fallback to "3:00"
+            let finalDuration = initialDuration ?? lastFmDuration ?? "3:00"
+            
+            let track = Track(
+                position: trackInfo.position,
+                title: trackInfo.title,
+                duration: finalDuration,
+                artist: release.artists.first?.name ?? "",
+                album: release.title,
+                artworkURL: nil
+            )
+            
+            let isDefaultDuration = finalDuration == "3:00"
+            logger.debug("""
+                Added track:
+                - Position: \(track.position)
+                - Title: \(track.title)
+                - Duration: \(track.duration ?? "3:00")\(isDefaultDuration ? " (default)" : "")
+                - Artist: \(track.artist)
+                """)
+            
+            tracks.append(track)
+        }
+        
+        logger.info("✅ Processed \(tracks.count) tracks from release")
+        return tracks
     }
 }
 
-// MARK: - URLSession Delegate
-// Custom URLSession delegate to handle SSL/TLS validation
-class DiscogsURLSessionDelegate: NSObject, URLSessionDelegate {
-    private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "DiscogsURLSessionDelegate")
+// MARK: - Error Handling
+enum DiscogsError: LocalizedError {
+    case invalidInput(String)
+    case invalidURL
+    case invalidResponse
+    case httpError(Int)
+    case decodingError(Error)
+    case missingToken
+    case releaseNotFound
+    case connectionError(String)
     
-    func urlSession(_ session: URLSession, 
-                   didReceive challenge: URLAuthenticationChallenge, 
-                   completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        
-        guard let serverTrust = challenge.protectionSpace.serverTrust else {
-            completionHandler(.cancelAuthenticationChallenge, nil)
-            return
-        }
-        
-        let host = challenge.protectionSpace.host
-        
-        // Only proceed with certificate validation for api.discogs.com
-        if host == "api.discogs.com" {
-            let credential = URLCredential(trust: serverTrust)
-            completionHandler(.useCredential, credential)
-            self.logger.info("Validated SSL certificate for api.discogs.com")
-        } else {
-            completionHandler(.cancelAuthenticationChallenge, nil)
-            self.logger.error("Invalid host for SSL validation: \(host)")
+    var errorDescription: String? {
+        switch self {
+        case .invalidInput(let message):
+            return "Invalid input: \(message)"
+        case .invalidURL:
+            return "Invalid URL for Discogs API request"
+        case .invalidResponse:
+            return "Invalid response from Discogs API"
+        case .httpError(let statusCode):
+            return "HTTP error \(statusCode) from Discogs API"
+        case .decodingError(let error):
+            return "Failed to decode Discogs response: \(error.localizedDescription)"
+        case .missingToken:
+            return "Missing Discogs API token"
+        case .releaseNotFound:
+            return "Release not found on Discogs"
+        case .connectionError(let message):
+            return "Connection error: \(message)"
         }
     }
 }
