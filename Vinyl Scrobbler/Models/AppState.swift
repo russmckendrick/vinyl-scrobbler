@@ -45,18 +45,34 @@ class AppState: ObservableObject {
     
     func previousTrack() {
         guard currentTrackIndex > 0 else { return }
-        currentTrackIndex -= 1
-        currentTrack = tracks[currentTrackIndex]
-        resetPlayback()
-        updateNowPlaying()
+        // Sort tracks by position before finding the previous track
+        let sortedTracks = tracks.sorted { $0.position < $1.position }
+        let currentPosition = tracks[currentTrackIndex].position
+        if let newIndex = sortedTracks.firstIndex(where: { $0.position == currentPosition }) {
+            let previousIndex = newIndex - 1
+            if previousIndex >= 0 {
+                currentTrackIndex = tracks.firstIndex(where: { $0.position == sortedTracks[previousIndex].position }) ?? (currentTrackIndex - 1)
+                currentTrack = tracks[currentTrackIndex]
+                resetPlayback()
+                updateNowPlaying()
+            }
+        }
     }
     
     func nextTrack() {
         guard currentTrackIndex < tracks.count - 1 else { return }
-        currentTrackIndex += 1
-        currentTrack = tracks[currentTrackIndex]
-        resetPlayback()
-        updateNowPlaying()
+        // Sort tracks by position before finding the next track
+        let sortedTracks = tracks.sorted { $0.position < $1.position }
+        let currentPosition = tracks[currentTrackIndex].position
+        if let newIndex = sortedTracks.firstIndex(where: { $0.position == currentPosition }) {
+            let nextIndex = newIndex + 1
+            if nextIndex < sortedTracks.count {
+                currentTrackIndex = tracks.firstIndex(where: { $0.position == sortedTracks[nextIndex].position }) ?? (currentTrackIndex + 1)
+                currentTrack = tracks[currentTrackIndex]
+                resetPlayback()
+                updateNowPlaying()
+            }
+        }
     }
     
     private func startPlayback() {
@@ -195,4 +211,22 @@ class AppState: ObservableObject {
         }
     }
     #endif
+    
+    // Helper method to update currentTrackIndex based on sorted position
+    private func updateCurrentTrackIndex(for track: Track) {
+        let sortedTracks = tracks.sorted { $0.position < $1.position }
+        if let index = sortedTracks.firstIndex(where: { $0.position == track.position }) {
+            currentTrackIndex = tracks.firstIndex(where: { $0.position == sortedTracks[index].position }) ?? 0
+        }
+    }
+    
+    // Update this method to handle track selection
+    func selectAndPlayTrack(_ track: Track) {
+        currentTrack = track
+        updateCurrentTrackIndex(for: track)
+        resetPlayback()
+        isPlaying = true
+        startPlayback()
+        updateNowPlaying()
+    }
 } 

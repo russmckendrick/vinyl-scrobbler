@@ -9,7 +9,7 @@ struct TrackListView: View {
                 .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    appState.currentTrack = track
+                    selectTrack(track)
                 }
         }
         .listStyle(.inset)
@@ -27,6 +27,10 @@ struct TrackListView: View {
     
     private func isPlaying(_ track: Track) -> Bool {
         appState.currentTrack == track && appState.isPlaying
+    }
+    
+    private func selectTrack(_ track: Track) {
+        appState.selectAndPlayTrack(track)
     }
 }
 
