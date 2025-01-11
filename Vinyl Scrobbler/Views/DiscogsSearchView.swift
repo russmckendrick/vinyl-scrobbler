@@ -16,32 +16,36 @@ struct DiscogsSearchView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
             
-            Text("Enter a Discogs release ID or URL")
-                .foregroundColor(.secondary)
-            
-            TextField("e.g. 1055904 or https://www.discogs.com/release/1055904", text: $input)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit(loadRelease)
-            
-            Button(action: loadRelease) {
-                if isLoading {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Text("Load")
-                }
+            // Search bar
+            SearchBar(text: $input) {
+                performSearch()
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(input.isEmpty || isLoading)
+            .padding(.horizontal)
             
-            if !isLoading {
-                Text("Tip: You can find the release ID or URL on Discogs.com")
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+            } else if viewModel.showResults {
+                // Search results
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(viewModel.results, id: \.id) { result in
+                            DiscogsResultRow(result: result)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    selectRelease(result)
+                                }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            } else {
+                Text("Enter a Discogs release ID, URL, or search for an album")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
-        .padding()
-        .frame(width: 400)
+        .frame(width: 500, height: 600)
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -52,14 +56,53 @@ struct DiscogsSearchView: View {
         }
     }
     
+    private func performSearch() {
+        guard !input.isEmpty else { return }
+        
+        // Check if input might be a release ID or URL
+        if input.contains("/") || input.contains("[r") || Int(input) != nil {
+            loadRelease()
+        } else {
+            isLoading = true
+            Task {
+                do {
+                    try await viewModel.search(query: input)
+                } catch {
+                    errorMessage = error.localizedDescription
+                    showingError = true
+                }
+                await MainActor.run {
+                    isLoading = false
+                }
+            }
+        }
+    }
+    
     private func loadRelease() {
         isLoading = true
         Task {
             do {
                 try await viewModel.loadReleaseById(input)
                 await MainActor.run {
-                    input = ""
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    showingError = true
                     isLoading = false
+                }
+            }
+        }
+    }
+    
+    private func selectRelease(_ result: DiscogsSearchResponse.SearchResult) {
+        isLoading = true
+        Task {
+            do {
+                try await viewModel.selectRelease(result)
+                await MainActor.run {
+                    dismiss()
                 }
             } catch {
                 await MainActor.run {

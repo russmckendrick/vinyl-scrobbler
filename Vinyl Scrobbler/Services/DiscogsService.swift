@@ -198,6 +198,16 @@ class DiscogsService {
             return id
         }
         
+        // Check for [r123456] format
+        if input.hasPrefix("[r") && input.hasSuffix("]") {
+            let start = input.index(input.startIndex, offsetBy: 2)
+            let end = input.index(input.endIndex, offsetBy: -1)
+            let releaseId = String(input[start..<end])
+            if let id = Int(releaseId) {
+                return id
+            }
+        }
+        
         // Try to parse as URL
         guard let url = URL(string: input) else {
             throw DiscogsError.invalidInput("Invalid URL or release ID format")
@@ -209,7 +219,7 @@ class DiscogsService {
         // Look for "release" or "releases" in the path
         if let releaseIndex = pathComponents.firstIndex(where: { $0 == "release" || $0 == "releases" }),
            releaseIndex + 1 < pathComponents.count,
-           let releaseId = Int(pathComponents[releaseIndex + 1]) {
+           let releaseId = Int(pathComponents[releaseIndex + 1].split(separator: "-").first ?? "") {
             return releaseId
         }
         

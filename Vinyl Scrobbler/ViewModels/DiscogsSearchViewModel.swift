@@ -14,81 +14,77 @@ class DiscogsSearchViewModel: ObservableObject {
     private let lastFMService = LastFMService.shared
     var appState: AppState?
     
-    func loadReleaseById(_ input: String) async {
-        isLoading = true
-        do {
-            let releaseId = try await discogsService.extractReleaseId(from: input)
-            let release = try await discogsService.loadRelease(releaseId)
-            
-            // Create tracks using AppState
-            if let appState = appState {
-                await appState.createTracks(from: release)
+    func loadReleaseById(_ input: String) async throws {
+        // Check for [r123456] format
+        if input.hasPrefix("[r") && input.hasSuffix("]") {
+            let start = input.index(input.startIndex, offsetBy: 2)
+            let end = input.index(input.endIndex, offsetBy: -1)
+            let releaseId = String(input[start..<end])
+            if let id = Int(releaseId) {
+                let release = try await discogsService.loadRelease(id)
+                await appState?.createTracks(from: release)
+                return
             }
-            
-            // Reset search
-            searchText = ""
-            showResults = false
-            isLoading = false
-            
-        } catch {
-            logger.error("Failed to load release: \(error.localizedDescription)")
-            errorMessage = error.localizedDescription
-            isLoading = false
         }
+        
+        // Try regular ID extraction
+        let releaseId = try await discogsService.extractReleaseId(from: input)
+        let release = try await discogsService.loadRelease(releaseId)
+        await appState?.createTracks(from: release)
     }
     
-    func search(query: String) async {
+    func search(query: String) async throws {
         guard !query.isEmpty else { return }
         
-        isLoading = true
-        defer { isLoading = false }
-        
-        do {
-            // Create search parameters with the query
-            let parameters = DiscogsService.SearchParameters(
-                query: query,
-                type: "release"  // Only search for releases
-            )
-            
-            let response = try await discogsService.searchReleases(parameters)
-            results = response.results
-            showResults = true
-        } catch {
-            logger.error("Search error: \(error.localizedDescription)")
-            errorMessage = error.localizedDescription
+        // Check if query contains artist - album format
+        if query.contains("-") {
+            let components = query.split(separator: "-").map(String.init)
+            if components.count == 2 {
+                let artist = components[0].trimmingCharacters(in: .whitespaces)
+                let album = components[1].trimmingCharacters(in: .whitespaces)
+                let parameters = DiscogsService.SearchParameters(
+                    query: "",
+                    type: "release",
+                    title: nil,
+                    releaseTitle: album,
+                    artist: artist,
+                    format: "vinyl"
+                )
+                let response = try await discogsService.searchReleases(parameters)
+                filterAndUpdateResults(response)
+                return
+            }
         }
+        
+        // General search
+        let parameters = DiscogsService.SearchParameters(
+            query: query,
+            type: "release",
+            format: "vinyl"
+        )
+        
+        let response = try await discogsService.searchReleases(parameters)
+        filterAndUpdateResults(response)
+    }
+    
+    private func filterAndUpdateResults(_ response: DiscogsSearchResponse) {
+        // Filter results to only include vinyl releases
+        results = response.results.filter { result in
+            guard let formats = result.format else { return false }
+            return formats.contains { format in
+                format.lowercased().contains("vinyl") ||
+                format.lowercased().contains("lp") ||
+                format.lowercased().contains("12\"")
+            }
+        }
+        
+        showResults = true
     }
     
     func selectRelease(_ result: DiscogsSearchResponse.SearchResult) async throws {
         guard let appState = appState else { return }
         
         let release = try await discogsService.loadRelease(result.id)
-        
-        // Get artwork URL from Last.fm
-        let artworkURL = try? await getLastFMArtworkURL(artist: release.artists.first?.name ?? "", album: release.title)
-        
-        // Convert Discogs release to app tracks
-        let tracks = release.tracklist.map { track in
-            Track(
-                position: track.position,
-                title: track.title,
-                duration: track.duration,
-                artist: release.artists.first?.name ?? "",
-                album: release.title,
-                artworkURL: artworkURL
-            )
-        }
-        
-        // Update app state
-        appState.tracks = tracks
-        if let firstTrack = tracks.first {
-            appState.selectAndPlayTrack(firstTrack)
-        }
-    }
-    
-    private func getLastFMArtworkURL(artist: String, album: String) async throws -> URL? {
-        let albumInfo = try await lastFMService.getAlbumInfo(artist: artist, album: album)
-        // Get the largest available image (they come in order: small, medium, large, extralarge, mega)
-        return albumInfo.images?.last.flatMap { URL(string: $0.url) }
+        await appState.createTracks(from: release)
     }
 } 
