@@ -4,10 +4,10 @@ struct ContentView: View {
     @EnvironmentObject private var appState: AppState
     
     var body: some View {
-        VStack(spacing: 20) {
-            // Album artwork
+        VStack(spacing: 24) {
+            // Album artwork view
             AlbumArtworkView()
-                .frame(width: 300, height: 300)
+                .frame(height: 300)
             
             // Track info
             TrackInfoView()
@@ -17,9 +17,9 @@ struct ContentView: View {
             
             // Track list
             TrackListView()
+                .frame(maxHeight: .infinity)
         }
-        .padding()
-        .frame(minWidth: 500, minHeight: 700)
+        .padding(20)
         .sheet(isPresented: $appState.showDiscogsSearch) {
             DiscogsSearchView()
         }
@@ -29,5 +29,19 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showAbout) {
             AboutView()
         }
+    }
+}
+
+// MARK: - Preview
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+            .environmentObject(AppState(previewTrack: Track(
+                position: "A1",
+                title: "Sample Track",
+                duration: "3:45",
+                artist: "Sample Artist",
+                album: "Sample Album"
+            )))
     }
 } 

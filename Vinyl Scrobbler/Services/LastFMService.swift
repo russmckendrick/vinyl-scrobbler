@@ -23,6 +23,7 @@ enum LastFMError: LocalizedError {
     case decodingError(Error)
     case authenticationFailed(Error)
     case missingApiKey
+    case notAuthenticated
     
     var errorDescription: String? {
         // Error descriptions for user-friendly messages
@@ -43,6 +44,8 @@ enum LastFMError: LocalizedError {
             return "Failed to authenticate with Last.fm: \(error.localizedDescription)"
         case .missingApiKey:
             return "Missing Last.fm API key"
+        case .notAuthenticated:
+            return "Not authenticated"
         }
     }
 }
@@ -151,270 +154,147 @@ struct AlbumTrack: Codable {
 @MainActor
 class LastFMService {
     // Singleton instance
-    @MainActor static let shared = LastFMService()
+    static let shared = LastFMService()
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "LastFMService")
     private let session: URLSession
-    private var manager: SBKManager?
+    private var sessionKey: String?
     
     // MARK: - Initialization
     private init() {
         let config = URLSessionConfiguration.default
         session = URLSession(configuration: config)
-        setupScrobbleKit()
-    }
-    
-    // Configure ScrobbleKit with API credentials
-    private func setupScrobbleKit() {
-        guard let apiKey = SecureConfig.lastFMAPIKey,
-              let secret = SecureConfig.lastFMSecret else {
-            logger.error("Failed to load Last.fm configuration")
-            return
-        }
-        
-        manager = SBKManager(
-            apiKey: apiKey,
-            secret: secret
-        )
-        
-        // Check keychain for existing session key
-        if let sessionKey = getStoredSessionKey() {
-            manager?.setSessionKey(sessionKey)
-            logger.info("Loaded existing Last.fm session key from keychain")
-        }
     }
     
     // MARK: - Authentication
     // Authenticate user with Last.fm
     func authenticate(username: String, password: String) async throws {
-        guard let manager = manager else {
-            throw LastFMError.configurationMissing
-        }
-        
-        do {
-            // Get session from ScrobbleKit
-            let response = try await manager.startSession(username: username, password: password)
-            
-            // Store session key in keychain
-            try await storeSessionKey(response.key)
-            
-            // Set the session key in manager
-            manager.setSessionKey(response.key)
-            
-            logger.info("Authentication successful")
-        } catch {
-            logger.error("Authentication failed: \(error.localizedDescription)")
-            throw error
-        }
-    }
-    
-    // Store session key securely in keychain
-    private func storeSessionKey(_ key: String) async throws {
-        // First remove any existing key
-        let removeQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: "lastfm_session_key"
-        ]
-        SecItemDelete(removeQuery as CFDictionary)
-        
-        // Store new key
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: "lastfm_session_key",
-            kSecValueData as String: key.data(using: .utf8)!,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+        let params = [
+            "method": "auth.getToken",
+            "api_key": SecureConfig.lastFMAPIKey ?? "",
+            "username": username,
+            "password": password
         ]
         
-        let status = SecItemAdd(query as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw LastFMError.authenticationFailed(NSError(domain: "com.vinyl.scrobbler", 
-                                                         code: Int(status)))
+        let response = try await makeRequest(params)
+        logger.debug("Authentication response: \(response)")
+        
+        guard let token = response["token"] as? String else {
+            throw LastFMError.invalidResponse
         }
+        
+        let sessionParams = [
+            "method": "auth.getSession",
+            "api_key": SecureConfig.lastFMAPIKey ?? "",
+            "token": token
+        ]
+        
+        let sessionResponse = try await makeRequest(sessionParams)
+        logger.debug("Session response: \(sessionResponse)")
+        
+        guard let newSessionKey = sessionResponse["session"] as? String else {
+            throw LastFMError.invalidResponse
+        }
+        
+        self.sessionKey = newSessionKey
+        logger.info("Authentication successful")
     }
     
     // MARK: - Scrobbling
     // Submit track play to Last.fm
-    public func scrobbleTrack(track: AppDelegate.Track) async throws {
-        guard let manager = manager else {
-            throw LastFMError.configurationMissing
+    func scrobbleTrack(track: Track) async throws {
+        guard let sessionKey = sessionKey else {
+            throw LastFMError.notAuthenticated
         }
         
-        let durationInSeconds = convertDurationToSeconds(track.duration)
+        let timestamp = Int(Date().timeIntervalSince1970)
         
-        logger.debug("""
-            📝 Preparing to scrobble track:
-            Title: \(track.title)
-            Artist: \(track.artist)
-            Album: \(track.album)
-            Duration: \(track.duration ?? "unknown") (\(String(describing: durationInSeconds)) seconds)
-            """)
+        // Create initial params as a constant
+        let baseParams = [
+            "method": "track.scrobble",
+            "artist": track.artist,
+            "track": track.title,
+            "album": track.album,
+            "timestamp": String(timestamp),
+            "sk": sessionKey
+        ]
         
-        do {
-            let sbkTrack = SBKTrackToScrobble(
-                artist: track.artist,
-                track: track.title,
-                timestamp: Date(),  // Use current time for scrobble
-                album: track.album,
-                duration: durationInSeconds ?? 0
-            )
-            
-            let response = try await manager.scrobble(tracks: [sbkTrack])
-            
-            if response.isCompletelySuccessful {
-                logger.info("✅ Track successfully submitted to Last.fm")
-            } else if let result = response.results.first {
-                if result.isAccepted {
-                    var correctionLog = ["🔄 Track scrobbled with the following corrections:"]
-                    if let correctedArtist = result.correctedArtist {
-                        correctionLog.append("- Artist corrected to: \(correctedArtist)")
-                    }
-                    if let correctedTrack = result.correctedTrack {
-                        correctionLog.append("- Track corrected to: \(correctedTrack)")
-                    }
-                    if let correctedAlbum = result.correctedAlbum {
-                        correctionLog.append("- Album corrected to: \(correctedAlbum)")
-                    }
-                    logger.info("\(correctionLog.joined(separator: "\n"))")
-                } else if let error = result.error {
-                    logger.error("❌ Scrobble rejected by Last.fm: \(error.rawValue)")
-                    throw LastFMError.invalidResponse
-                }
-            }
-        } catch {
-            logger.error("❌ Scrobble failed: \(error.localizedDescription)")
-            throw error
+        // Create mutable copy for optional parameters
+        var params = baseParams
+        
+        // Add duration if available
+        if let duration = track.durationSeconds {
+            params["duration"] = String(duration)
         }
+        
+        let response = try await makeRequest(params)
+        logger.debug("Scrobble response: \(response)")
     }
     
     // Update Now Playing information
-    public func updateNowPlaying(track: AppDelegate.Track) async throws {
-        guard let manager = manager else {
-            throw LastFMError.configurationMissing
+    func updateNowPlaying(track: Track) async throws {
+        guard let sessionKey = sessionKey else {
+            throw LastFMError.notAuthenticated
         }
         
-        let durationInSeconds = convertDurationToSeconds(track.duration)
+        var params: [String: String] = [
+            "method": "track.updateNowPlaying",
+            "artist": track.artist,
+            "track": track.title,
+            "album": track.album,
+            "sk": sessionKey
+        ]
         
-        logger.debug("""
-            🎵 Updating Now Playing:
-            Title: \(track.title)
-            Artist: \(track.artist)
-            Album: \(track.album)
-            Duration: \(track.duration ?? "unknown") (\(String(describing: durationInSeconds)) seconds)
-            """)
-        
-        do {
-            let result = try await manager.updateNowPlaying(
-                artist: track.artist,
-                track: track.title,
-                album: track.album,
-                duration: durationInSeconds
-            )
-            
-            logger.info("✅ Now Playing updated on Last.fm")
-            
-            // Log any corrections
-            if !result.correctedInformation.isEmpty {
-                var correctionLog = ["🔄 Last.fm made the following corrections:"]
-                if let artist = result.correctedInformation[.artist] {
-                    correctionLog.append("- Artist: \(artist)")
-                }
-                if let track = result.correctedInformation[.track] {
-                    correctionLog.append("- Track: \(track)")
-                }
-                if let album = result.correctedInformation[.album] {
-                    correctionLog.append("- Album: \(album)")
-                }
-                if let albumArtist = result.correctedInformation[.albumArtist] {
-                    correctionLog.append("- Album Artist: \(albumArtist)")
-                }
-                logger.info("\(correctionLog.joined(separator: "\n"))")
-            }
-        } catch {
-            logger.error("❌ Failed to update Now Playing: \(error.localizedDescription)")
-            throw error
+        // Add duration if available
+        if let duration = track.durationSeconds {
+            params["duration"] = String(duration)
         }
+        
+        let response = try await makeRequest(params)
+        logger.debug("Now playing update response: \(response)")
     }
     
     // Scrobble track with specific timestamp
-    public func scrobbleArtist(artist: String, track: String, album: String, duration: Int, timestamp: Date) async throws {
-        guard let manager = manager else {
-            throw LastFMError.configurationMissing
+    func scrobbleArtist(artist: String, track: String, album: String, duration: Int, timestamp: Date) async throws {
+        guard let sessionKey = sessionKey else {
+            throw LastFMError.notAuthenticated
         }
         
-        do {
-            logger.info("Scrobbling track: '\(track)' by \(artist) from album '\(album)'")
-            
-            let trackToScrobble = SBKTrackToScrobble(
-                artist: artist,
-                track: track,
-                timestamp: timestamp,
-                album: album,
-                duration: duration
-            )
-            
-            let response = try await manager.scrobble(tracks: [trackToScrobble])
-            
-            if response.isCompletelySuccessful {
-                logger.info("Track scrobbled successfully!")
-            } else {
-                if let result = response.results.first {
-                    if result.isAccepted {
-                        logger.info("Scrobbled: \(result.track.artist) - \(result.track.track)")
-                        if let correctedArtist = result.correctedArtist {
-                            logger.info("Artist corrected to: \(correctedArtist)")
-                        }
-                        if let correctedTrack = result.correctedTrack {
-                            logger.info("Track corrected to: \(correctedTrack)")
-                        }
-                    } else if let error = result.error {
-                        logger.error("Failed to scrobble \(result.track.artist) - \(result.track.track): \(error.rawValue)")
-                        throw LastFMError.authenticationFailed(error)
-                    }
-                }
-            }
-        } catch {
-            logger.error("Failed to scrobble track: \(error.localizedDescription)")
-            throw error
-        }
+        // Create params as immutable since we're not modifying it
+        let params = [
+            "method": "track.scrobble",
+            "artist": artist,
+            "track": track,
+            "album": album,
+            "duration": String(duration),
+            "timestamp": String(Int(timestamp.timeIntervalSince1970)),
+            "sk": sessionKey
+        ]
+        
+        let response = try await makeRequest(params)
+        logger.debug("Scrobble response: \(response)")
     }
     
     // MARK: - Album Information
     // Fetch album details from Last.fm
-    public func getAlbumInfo(artist: String, album: String) async throws -> AlbumInfo {
-        guard let apiKey = SecureConfig.lastFMAPIKey else {
-            throw LastFMError.missingApiKey
-        }
-        
-        var components = URLComponents(string: "https://ws.audioscrobbler.com/2.0/")
-        components?.queryItems = [
-            URLQueryItem(name: "method", value: "album.getInfo"),
-            URLQueryItem(name: "api_key", value: apiKey),
-            URLQueryItem(name: "artist", value: artist),
-            URLQueryItem(name: "album", value: album),
-            URLQueryItem(name: "format", value: "json")
+    func getAlbumInfo(artist: String, album: String) async throws -> AlbumInfo {
+        let params = [
+            "method": "album.getInfo",
+            "artist": artist,
+            "album": album,
+            "api_key": SecureConfig.lastFMAPIKey ?? "",
+            "format": "json"
         ]
         
-        guard let url = components?.url else {
-            throw LastFMError.invalidURL
-        }
+        let response = try await makeRequest(params)
         
-        let (data, response) = try await session.data(from: url)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
+        guard let albumData = response["album"] as? [String: Any] else {
             throw LastFMError.invalidResponse
         }
         
-        guard httpResponse.statusCode == 200 else {
-            throw LastFMError.httpError(httpResponse.statusCode)
-        }
-        
-        do {
-            let decoder = JSONDecoder()
-            let result = try decoder.decode(LastFMResponse.self, from: data)
-            return result.album
-        } catch {
-            logger.error("Failed to decode Last.fm response: \(error.localizedDescription)")
-            throw LastFMError.decodingError(error)
-        }
+        let decoder = JSONDecoder()
+        let jsonData = try JSONSerialization.data(withJSONObject: ["album": albumData])
+        let albumInfo = try decoder.decode(AlbumInfoResponse.self, from: jsonData)
+        return albumInfo.album
     }
     
     // MARK: - Utility Methods
@@ -432,73 +312,91 @@ class LastFMService {
     
     // MARK: - Session Management
     // Set active session key
-    public func setSessionKey(_ key: String) {
-        manager?.setSessionKey(key)
+    func setSessionKey(_ key: String) {
+        sessionKey = key
         logger.info("Set Last.fm session key (length: \(key.count) characters)")
     }
     
     // Retrieve stored session key from keychain
-    public func getStoredSessionKey() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: "lastfm_session_key",
-            kSecReturnData as String: true
-        ]
-        
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        
-        if status == errSecSuccess,
-           let data = result as? Data,
-           let key = String(data: data, encoding: .utf8) {
-            logger.info("✅ Retrieved session key from keychain")
-            return key
-        }
-        
-        logger.info("ℹ️ No session key found in keychain")
-        return nil
+    func getStoredSessionKey() -> String? {
+        return KeychainHelper.getLastFMSessionKey()
     }
     
     // Start new session with credentials
-    public func startSession(username: String, password: String) async throws -> (key: String?, name: String?) {
-        guard let manager = manager else {
-            throw LastFMError.configurationMissing
+    func startSession(username: String, password: String) async throws -> (key: String?, name: String?) {
+        let params = [
+            "method": "auth.getToken",
+            "api_key": SecureConfig.lastFMAPIKey ?? "",
+            "username": username,
+            "password": password
+        ]
+        
+        let response = try await makeRequest(params)
+        logger.debug("Authentication response: \(response)")
+        
+        guard let token = response["token"] as? String else {
+            throw LastFMError.invalidResponse
         }
         
-        do {
-            logger.info("🔐 Attempting to authenticate with Last.fm for user: \(username)")
-            let response = try await manager.startSession(username: username, password: password)
-            
-            // Verify we got a valid session key
-            guard !response.key.isEmpty else {
-                logger.error("❌ Received empty session key from Last.fm")
-                throw LastFMError.invalidSessionKey
-            }
-            
-            // Set the session key in the manager
-            manager.setSessionKey(response.key)
-            
-            // Store the session key in keychain
-            do {
-                try await storeSessionKey(response.key)
-            } catch {
-                logger.error("❌ Failed to store session key: \(error.localizedDescription)")
-                // Continue even if keychain storage fails - we still have the key in memory
-            }
-            
-            logger.info("✅ Successfully authenticated with Last.fm")
-            return (response.key, response.name)
-            
-        } catch {
-            logger.error("❌ Authentication failed with error: \(error.localizedDescription)")
-            throw LastFMError.authenticationFailed(error)
+        let sessionParams = [
+            "method": "auth.getSession",
+            "api_key": SecureConfig.lastFMAPIKey ?? "",
+            "token": token
+        ]
+        
+        let sessionResponse = try await makeRequest(sessionParams)
+        logger.debug("Session response: \(sessionResponse)")
+        
+        guard let newSessionKey = sessionResponse["session"] as? String else {
+            throw LastFMError.invalidResponse
         }
+        
+        self.sessionKey = newSessionKey
+        logger.info("✅ Successfully authenticated with Last.fm")
+        return (newSessionKey, response["name"] as? String)
     }
     
     // Clear current session
     @MainActor
     func clearSession() {
-        manager?.setSessionKey("")
+        sessionKey = nil
+        KeychainHelper.deleteLastFMSessionKey()
         logger.info("Cleared Last.fm session")
     }
+    
+    // MARK: - Private Helper Methods
+    private func makeRequest(_ params: [String: String]) async throws -> [String: Any] {
+        var components = URLComponents(string: "https://ws.audioscrobbler.com/2.0/")
+        components?.queryItems = params.map { URLQueryItem(name: $0.key, value: $0.value) }
+        components?.queryItems?.append(URLQueryItem(name: "format", value: "json"))
+        
+        guard let url = components?.url else {
+            throw LastFMError.invalidURL
+        }
+        
+        let (data, response) = try await session.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw LastFMError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw LastFMError.httpError(httpResponse.statusCode)
+        }
+        
+        do {
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw LastFMError.invalidResponse
+            }
+            return json
+        } catch {
+            logger.error("Failed to decode Last.fm response: \(error.localizedDescription)")
+            throw LastFMError.decodingError(error)
+        }
+    }
+}
+
+// MARK: - Response Types
+private struct AlbumInfoResponse: Codable {
+    let album: AlbumInfo
 }

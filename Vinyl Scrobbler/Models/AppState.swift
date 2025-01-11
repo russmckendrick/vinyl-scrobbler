@@ -7,6 +7,7 @@ class AppState: ObservableObject {
     @Published var tracks: [Track] = []
     @Published var isPlaying = false
     @Published var currentPlaybackSeconds = 0
+    @Published var currentTrackIndex = 0
     @Published var showDiscogsSearch = false
     @Published var showAbout = false
     @Published var showLastFMAuth = false
@@ -16,11 +17,8 @@ class AppState: ObservableObject {
     private var playbackTimer: Timer?
     
     init() {
-        // Initialize services on the main actor
         self.lastFMService = LastFMService.shared
         self.discogsService = DiscogsService.shared
-        
-        // Check auth state
         checkLastFMAuth()
     }
     
@@ -34,26 +32,21 @@ class AppState: ObservableObject {
     }
     
     func previousTrack() {
-        guard let currentIndex = getCurrentTrackIndex(),
-              currentIndex > 0 else { return }
-        currentTrack = tracks[currentIndex - 1]
+        guard currentTrackIndex > 0 else { return }
+        currentTrackIndex -= 1
+        currentTrack = tracks[currentTrackIndex]
         resetPlayback()
     }
     
     func nextTrack() {
-        guard let currentIndex = getCurrentTrackIndex(),
-              currentIndex < tracks.count - 1 else { return }
-        currentTrack = tracks[currentIndex + 1]
+        guard currentTrackIndex < tracks.count - 1 else { return }
+        currentTrackIndex += 1
+        currentTrack = tracks[currentTrackIndex]
         resetPlayback()
     }
     
-    private func getCurrentTrackIndex() -> Int? {
-        guard let currentTrack = currentTrack else { return nil }
-        return tracks.firstIndex(where: { $0.id == currentTrack.id })
-    }
-    
     private func startPlayback() {
-        // Create timer on main actor
+        playbackTimer?.invalidate()
         playbackTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.updatePlayback()
@@ -64,6 +57,7 @@ class AppState: ObservableObject {
     private func stopPlayback() {
         playbackTimer?.invalidate()
         playbackTimer = nil
+        currentPlaybackSeconds = 0
     }
     
     private func resetPlayback() {
@@ -86,16 +80,15 @@ class AppState: ObservableObject {
     }
     
     private func checkLastFMAuth() {
-        Task {
-            let sessionKey = await lastFMService.getStoredSessionKey()
-            if sessionKey == nil || sessionKey?.isEmpty == true {
-                showLastFMAuth = true
-            }
+        if let sessionKey = lastFMService.getStoredSessionKey(),
+           !sessionKey.isEmpty {
+            showLastFMAuth = false
+        } else {
+            showLastFMAuth = true
         }
     }
     
     #if DEBUG
-    // Simple preview helper
     convenience init(previewTrack: Track? = nil) {
         self.init()
         if let track = previewTrack {
