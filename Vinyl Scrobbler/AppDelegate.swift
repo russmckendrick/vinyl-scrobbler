@@ -114,4 +114,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
     }
+    
+    private func updateStatusBar(_ text: String) {
+        statusItem.button?.title = text
+    }
+    
+    private func showAlert(title: String, message: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.runModal()
+    }
+    
+    func loadDiscogsRelease(from infoURL: String) async {
+        logger.info("🔍 Starting Discogs release load from input: \(infoURL)")
+        updateStatusBar("Loading release...")
+        
+        do {
+            let releaseId = try await DiscogsService.shared.extractReleaseId(from: infoURL)
+            logger.info("📝 Extracted release ID: \(releaseId)")
+            
+            let release = try await DiscogsService.shared.loadRelease(releaseId)
+            logger.info("✅ Successfully loaded release from Discogs")
+            
+            // Update app state with the new release
+            await MainActor.run {
+                appState.loadRelease(release)
+                updateStatusBar("♪")
+                
+                // Close the search dialog
+                appState.showDiscogsSearch = false
+                
+                // Show the main window if it's not visible
+                showWindow()
+            }
+        } catch {
+            logger.error("❌ Failed to load album: \(error.localizedDescription)")
+            updateStatusBar("Error loading album")
+            showAlert(title: "Error", message: error.localizedDescription)
+        }
+    }
 }

@@ -110,13 +110,17 @@ class AppState: ObservableObject {
            let duration = track.durationSeconds,
            shouldScrobble {
             // Only log at significant percentages
-            if currentPlaybackSeconds == duration / 4 ||
-               currentPlaybackSeconds == duration / 2 ||
-               currentPlaybackSeconds == (duration * 3) / 4 {
+            let quarterDuration = duration / 4
+            let halfDuration = duration / 2
+            let threeQuarterDuration = (duration * 3) / 4
+            
+            if currentPlaybackSeconds == quarterDuration ||
+               currentPlaybackSeconds == halfDuration ||
+               currentPlaybackSeconds == threeQuarterDuration {
                 print("⏱️ Track progress: \(currentPlaybackSeconds)s / \(duration)s")
             }
             
-            if currentPlaybackSeconds >= duration / 2 || currentPlaybackSeconds >= 240 {
+            if currentPlaybackSeconds >= halfDuration || currentPlaybackSeconds >= 240 {
                 print("🎵 Scrobble threshold reached (\(currentPlaybackSeconds)s)")
                 scrobbleCurrentTrack()
                 shouldScrobble = false  // Prevent multiple scrobbles of the same track
@@ -248,5 +252,97 @@ class AppState: ObservableObject {
         isPlaying = true
         startPlayback()
         updateNowPlaying()
+    }
+    
+    public func createTracks(from release: DiscogsRelease) async {
+        var newTracks: [Track] = []
+        
+        for track in release.tracklist {
+            var duration = track.duration
+            var artworkURL: URL? = nil
+            
+            // Fetch artwork and duration from Last.fm
+            do {
+                let albumInfo = try await LastFMService.shared.getAlbumInfo(artist: release.artists.first?.name ?? "", album: release.title)
+                if let images = albumInfo.images {
+                    if let extraLargeImage = images.first(where: { $0.size == "extralarge" }) {
+                        artworkURL = URL(string: extraLargeImage.url)
+                    } else if let largeImage = images.first(where: { $0.size == "large" }) {
+                        artworkURL = URL(string: largeImage.url)
+                    }
+                }
+                
+                // Fetch duration from Last.fm
+                if let lastFmTrack = albumInfo.tracks.first(where: { $0.name == track.title }),
+                   let durationStr = lastFmTrack.duration,
+                   let durationSeconds = Int(durationStr) {
+                    let minutes = durationSeconds / 60
+                    let seconds = durationSeconds % 60
+                    duration = String(format: "%d:%02d", minutes, seconds)
+                }
+            } catch {
+                print("Failed to get album info from Last.fm: \(error.localizedDescription)")
+            }
+            
+            // Fallback to "3:00" if no duration is available
+            if duration == nil || duration?.isEmpty == true {
+                duration = "3:00"
+            }
+            
+            // Fallback to Discogs artwork if Last.fm artwork is not available
+            if artworkURL == nil {
+                artworkURL = URL(string: release.images?.first?.uri ?? "")
+            }
+            
+            let newTrack = Track(
+                position: track.position,
+                title: track.title,
+                duration: duration,
+                artist: release.artists.first?.name ?? "",
+                album: release.title,
+                artworkURL: artworkURL
+            )
+            newTracks.append(newTrack)
+        }
+        
+        tracks = newTracks
+        if !tracks.isEmpty {
+            currentTrackIndex = 0
+            currentTrack = tracks[currentTrackIndex]
+        }
+    }
+    
+    func loadRelease(_ release: DiscogsRelease) {
+        // Clear existing tracks
+        tracks.removeAll()
+        
+        // Create tracks from release
+        for track in release.tracklist {
+            let newTrack = Track(
+                position: track.position,
+                title: track.title,
+                duration: track.duration?.isEmpty ?? true ? "3:00" : track.duration,
+                artist: release.artists.first?.name ?? "",
+                album: release.title,
+                artworkURL: release.images?.first.map { URL(string: $0.uri) } ?? nil
+            )
+            tracks.append(newTrack)
+        }
+        
+        // Sort tracks by position
+        tracks.sort { $0.position < $1.position }
+        
+        // Set initial track
+        if let firstTrack = tracks.first {
+            currentTrack = firstTrack
+            currentTrackIndex = 0
+        }
+        
+        // Reset playback state
+        isPlaying = false
+        currentPlaybackSeconds = 0
+        shouldScrobble = true
+        
+        print("✅ Loaded release: \(release.title) with \(tracks.count) tracks")
     }
 } 

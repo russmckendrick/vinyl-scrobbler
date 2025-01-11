@@ -352,6 +352,23 @@ class LastFMService {
         }
     }
     
+    // MARK: - Track Information
+    public func getTrackInfo(artist: String, track: String) async throws -> SBKTrack {
+        guard let manager = manager else {
+            throw LastFMError.configurationMissing
+        }
+        
+        do {
+            logger.debug("🔍 Fetching track info from Last.fm for: \(track) by \(artist)")
+            let trackInfo = try await manager.getInfo(forTrack: track, artist: artist)
+            logger.info("✅ Successfully fetched track info from Last.fm")
+            return trackInfo
+        } catch {
+            logger.error("❌ Failed to fetch track info: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
     // MARK: - Utility Methods
     private func convertDurationToSeconds(_ duration: String?) -> Int? {
         guard let duration = duration else { return nil }

@@ -30,12 +30,12 @@ public struct Track: Identifiable, Equatable {
     public var durationSeconds: Int? {
         guard let duration = duration else { return nil }
         let components = duration.split(separator: ":")
-        if components.count == 2,
-           let minutes = Int(components[0]),
-           let seconds = Int(components[1]) {
-            return minutes * 60 + seconds
+        guard components.count == 2,
+              let minutes = Int(components[0]),
+              let seconds = Int(components[1]) else {
+            return nil
         }
-        return nil
+        return minutes * 60 + seconds
     }
     
     // MARK: - Initialization

@@ -206,6 +206,57 @@ class DiscogsService {
         
         throw DiscogsError.invalidInput("Could not find release ID in URL")
     }
+    
+    private func createTracks(from release: DiscogsRelease) async throws -> [Track] {
+        var tracks: [Track] = []
+        logger.info("🎼 Processing Discogs release: \(release.title)")
+        
+        // Try to get Last.fm album info first for artwork and track durations
+        var lastFmAlbumInfo: AlbumInfo? = nil
+        if let artist = release.artists.first?.name {
+            do {
+                lastFmAlbumInfo = try await LastFMService.shared.getAlbumInfo(
+                    artist: artist,
+                    album: release.title
+                )
+                logger.info("✅ Got Last.fm album info with \(lastFmAlbumInfo?.tracks.count ?? 0) tracks")
+            } catch {
+                logger.error("❌ Failed to get Last.fm album info: \(error.localizedDescription)")
+            }
+        }
+        
+        // Process tracks
+        for (index, trackInfo) in release.tracklist.enumerated() {
+            let initialDuration = trackInfo.duration?.isEmpty ?? true ? nil : trackInfo.duration
+            let lastFmDuration = lastFmAlbumInfo?.tracks.indices.contains(index) == true ? lastFmAlbumInfo?.tracks[index].duration : nil
+            
+            // Use Discogs duration if available, otherwise use Last.fm duration, finally fallback to "3:00"
+            let finalDuration = initialDuration ?? lastFmDuration ?? "3:00"
+            
+            var track = Track(
+                position: trackInfo.position,
+                title: trackInfo.title,
+                duration: finalDuration,
+                artist: release.artists.first?.name ?? "",
+                album: release.title,
+                artworkURL: nil
+            )
+            
+            let isDefaultDuration = finalDuration == "3:00"
+            logger.debug("""
+                Added track:
+                - Position: \(track.position)
+                - Title: \(track.title)
+                - Duration: \(track.duration ?? "3:00")\(isDefaultDuration ? " (default)" : "")
+                - Artist: \(track.artist)
+                """)
+            
+            tracks.append(track)
+        }
+        
+        logger.info("✅ Processed \(tracks.count) tracks from release")
+        return tracks
+    }
 }
 
 // MARK: - Error Handling

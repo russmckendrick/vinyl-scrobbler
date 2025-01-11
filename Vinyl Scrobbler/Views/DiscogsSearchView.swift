@@ -53,21 +53,19 @@ struct DiscogsSearchView: View {
     }
     
     private func loadRelease() {
-        guard !input.isEmpty else { return }
-        
+        isLoading = true
         Task {
-            isLoading = true
-            defer { isLoading = false }
-            
             do {
                 try await viewModel.loadReleaseById(input)
                 await MainActor.run {
-                    dismiss()
+                    input = ""
+                    isLoading = false
                 }
             } catch {
                 await MainActor.run {
                     errorMessage = error.localizedDescription
                     showingError = true
+                    isLoading = false
                 }
             }
         }
