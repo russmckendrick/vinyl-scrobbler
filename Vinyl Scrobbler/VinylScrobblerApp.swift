@@ -52,7 +52,6 @@ struct MenuBarView: View {
                 appState.showDiscogsSearch = true
             }
         }
-        .keyboardShortcut("l", modifiers: [.command])
 
         Button("Settings") {
             print("⚙️ Settings clicked - Window visible: \(appState.windowVisible)")
@@ -65,7 +64,6 @@ struct MenuBarView: View {
                 appState.showSettings = true
             }
         }
-        .keyboardShortcut(",", modifiers: [.command])
 
          Button(appState.windowVisible ? "Hide Player" : "Show Player") {
             print("🎵 \(appState.windowVisible ? "Hide" : "Show") Player clicked")
@@ -75,7 +73,6 @@ struct MenuBarView: View {
                 openWindow(id: "main")
             }
         }
-        .keyboardShortcut("p", modifiers: [.command, .shift])
 
         Divider()
         
@@ -96,7 +93,6 @@ struct MenuBarView: View {
         Button("Quit") {
             NSApplication.shared.terminate(nil)
         }
-        .keyboardShortcut("q", modifiers: [.command])
     }
 }
 
