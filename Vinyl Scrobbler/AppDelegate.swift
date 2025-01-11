@@ -87,21 +87,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func showSettings() {
-        // Create and show settings window
-        let settingsView = SettingsView()
-            .environmentObject(appState)
-        
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Settings"
-        window.contentView = NSHostingView(rootView: settingsView)
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        appState.showSettings = true
+        showWindow()
     }
     
     @objc func showAbout() {

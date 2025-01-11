@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import ScrobbleKit
 
 @MainActor
 class AppState: ObservableObject {
@@ -11,7 +12,9 @@ class AppState: ObservableObject {
     @Published var showDiscogsSearch = false
     @Published var showAbout = false
     @Published var showLastFMAuth = false
+    @Published var showSettings = false
     @Published var isAuthenticated = false
+    @Published var lastFMUser: SBKUser?
     
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
@@ -127,9 +130,22 @@ class AppState: ObservableObject {
             lastFMService.setSessionKey(sessionKey)
             showLastFMAuth = false
             isAuthenticated = true
+            Task {
+                await fetchUserInfo()
+            }
         } else {
             showLastFMAuth = true
             isAuthenticated = false
+            lastFMUser = nil
+        }
+    }
+    
+    private func fetchUserInfo() async {
+        do {
+            lastFMUser = try await lastFMService.getUserInfo()
+        } catch {
+            print("Failed to fetch user info: \(error.localizedDescription)")
+            lastFMUser = nil
         }
     }
     
@@ -137,6 +153,7 @@ class AppState: ObservableObject {
         lastFMService.clearSession()
         isAuthenticated = false
         showLastFMAuth = true
+        lastFMUser = nil
     }
     
     #if DEBUG

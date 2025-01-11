@@ -335,6 +335,23 @@ class LastFMService {
         }
     }
     
+    // MARK: - User Information
+    public func getUserInfo() async throws -> SBKUser {
+        guard let manager = manager else {
+            throw LastFMError.configurationMissing
+        }
+        
+        do {
+            logger.debug("🔍 Fetching user information from Last.fm")
+            let user = try await manager.getInfo(forUser: nil)
+            logger.info("✅ Successfully fetched user info for: \(user.username)")
+            return user
+        } catch {
+            logger.error("❌ Failed to fetch user info: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
     // MARK: - Utility Methods
     private func convertDurationToSeconds(_ duration: String?) -> Int? {
         guard let duration = duration else { return nil }

@@ -31,6 +31,9 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showAbout) {
             AboutView()
         }
+        .sheet(isPresented: $appState.showSettings) {
+            SettingsView()
+        }
     }
 }
 
