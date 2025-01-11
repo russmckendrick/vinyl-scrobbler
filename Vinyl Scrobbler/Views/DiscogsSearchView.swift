@@ -5,62 +5,43 @@ struct DiscogsSearchView: View {
     @EnvironmentObject private var appState: AppState
     
     @StateObject private var viewModel = DiscogsSearchViewModel()
-    @State private var searchText = ""
+    @State private var input = ""
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var isLoading = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Search header
-            VStack(spacing: 16) {
-                Text("Search Discogs")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                SearchBar(text: $searchText, onCommit: performSearch)
-            }
-            .padding()
-            .background(Color(NSColor.windowBackgroundColor))
+        VStack(spacing: 16) {
+            Text("Load Album")
+                .font(.title2)
+                .fontWeight(.semibold)
             
-            Divider()
+            Text("Enter a Discogs release ID or URL")
+                .foregroundColor(.secondary)
             
-            // Results area
-            ZStack {
-                if viewModel.isLoading {
-                    ProgressView("Searching...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.results.isEmpty && !searchText.isEmpty {
-                    ContentUnavailableView(
-                        "No Results",
-                        systemImage: "magnifyingglass",
-                        description: Text("Try a different search term")
-                    )
-                } else if viewModel.results.isEmpty {
-                    ContentUnavailableView(
-                        "Search Discogs",
-                        systemImage: "magnifyingglass",
-                        description: Text("Enter an album name to search")
-                    )
+            TextField("e.g. 1055904 or https://www.discogs.com/release/1055904", text: $input)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(loadRelease)
+            
+            Button(action: loadRelease) {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 8) {
-                            ForEach(viewModel.results) { result in
-                                DiscogsResultRow(result: result)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        Task {
-                                            await selectRelease(result)
-                                        }
-                                    }
-                                    .padding(.horizontal)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
+                    Text("Load")
                 }
             }
+            .buttonStyle(.borderedProminent)
+            .disabled(input.isEmpty || isLoading)
+            
+            if !isLoading {
+                Text("Tip: You can find the release ID or URL on Discogs.com")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
-        .frame(width: 600, height: 400)
+        .padding()
+        .frame(width: 400)
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -71,22 +52,23 @@ struct DiscogsSearchView: View {
         }
     }
     
-    private func performSearch() {
+    private func loadRelease() {
+        guard !input.isEmpty else { return }
+        
         Task {
-            await viewModel.search(query: searchText)
-        }
-    }
-    
-    private func selectRelease(_ result: DiscogsSearchResult) async {
-        do {
-            try await viewModel.selectRelease(result)
-            await MainActor.run {
-                dismiss()
-            }
-        } catch {
-            await MainActor.run {
-                errorMessage = error.localizedDescription
-                showingError = true
+            isLoading = true
+            defer { isLoading = false }
+            
+            do {
+                try await viewModel.loadReleaseById(input)
+                await MainActor.run {
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    showingError = true
+                }
             }
         }
     }

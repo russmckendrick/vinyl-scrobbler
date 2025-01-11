@@ -1,132 +1,64 @@
-import Cocoa
+import AppKit
 
 // MARK: - Search Results Data Source
 // Manages the data and presentation for the Discogs search results table
 class SearchResultsDataSource: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     // MARK: - Properties
-    // Array of search results from Discogs
-    private var results: [DiscogsSearchResult]
-    // Callback for when a result is selected
-    let selectionCallback: (DiscogsSearchResult) -> Void
-    private weak var tableView: NSTableView?
+    private var results: [DiscogsSearchResponse.SearchResult] = []
+    private var selectionCallback: ((DiscogsSearchResponse.SearchResult) -> Void)?
     
     // MARK: - Initialization
-    init(results: [DiscogsSearchResult], 
-         selectionCallback: @escaping (DiscogsSearchResult) -> Void) {
-        self.results = results
+    init(selectionCallback: @escaping (DiscogsSearchResponse.SearchResult) -> Void) {
         self.selectionCallback = selectionCallback
-        super.init()
     }
     
     // MARK: - Public Methods
-    // Update the results array and trigger a table refresh
-    func update(results: [DiscogsSearchResult]) {
+    func update(with results: [DiscogsSearchResponse.SearchResult]) {
         self.results = results
-        tableView?.reloadData()
     }
     
-    // MARK: - TableView DataSource
-    // Return the number of rows in the table
+    // MARK: - NSTableViewDataSource
     func numberOfRows(in tableView: NSTableView) -> Int {
         return results.count
     }
     
-    // Configure and return cells for the table
+    // MARK: - NSTableViewDelegate
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        // Store reference to table view for updates
-        self.tableView = tableView
+        guard let cell = tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier("ResultCell"), owner: nil) as? NSTableCellView else {
+            return nil
+        }
         
         let result = results[row]
         
-        switch tableColumn?.identifier.rawValue {
-        case "action":
-            // Create cell with add button
-            let cell = NSTableCellView()
-            let button = NSButton(image: NSImage(systemSymbolName: "plus.circle.fill", 
-                                               accessibilityDescription: "Add")!, 
-                                target: self, 
-                                action: #selector(addButtonClicked(_:)))
-            button.identifier = NSUserInterfaceItemIdentifier(String(result.id))
-            button.tag = row
-            button.bezelStyle = .circular
-            button.isBordered = false
-            button.translatesAutoresizingMaskIntoConstraints = false
-            cell.addSubview(button)
-            
-            // Layout constraints for the button
-            NSLayoutConstraint.activate([
-                button.centerXAnchor.constraint(equalTo: cell.centerXAnchor),
-                button.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-                button.widthAnchor.constraint(equalToConstant: 20),
-                button.heightAnchor.constraint(equalToConstant: 20)
-            ])
-            
-            return cell
-            
-        case "title":
-            // Create cell with release title
-            let cell = NSTableCellView()
-            let text = NSTextField(labelWithString: result.title)
-            text.translatesAutoresizingMaskIntoConstraints = false
-            cell.addSubview(text)
-            
-            NSLayoutConstraint.activate([
-                text.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 4),
-                text.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
-                text.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
-            ])
-            
-            return cell
-            
-        case "year":
-            // Create cell with release year
-            let cell = NSTableCellView()
-            let text = NSTextField(labelWithString: result.year ?? "N/A")
-            text.translatesAutoresizingMaskIntoConstraints = false
-            cell.addSubview(text)
-            
-            NSLayoutConstraint.activate([
-                text.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 4),
-                text.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
-                text.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
-            ])
-            
-            return cell
-            
-        case "format":
-            // Create cell with release format
-            let cell = NSTableCellView()
-            let text = NSTextField(labelWithString: result.format?.joined(separator: ", ") ?? "N/A")
-            text.translatesAutoresizingMaskIntoConstraints = false
-            cell.addSubview(text)
-            
-            NSLayoutConstraint.activate([
-                text.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 4),
-                text.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
-                text.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
-            ])
-            
-            return cell
-            
-        default:
-            return nil
+        // Configure the cell with the result data
+        cell.textField?.stringValue = result.title
+        
+        // Add additional details like year, format, etc.
+        var details: [String] = []
+        if let year = result.year {
+            details.append(year)
         }
+        if let format = result.format?.joined(separator: ", ") {
+            details.append(format)
+        }
+        if let country = result.country {
+            details.append(country)
+        }
+        
+        // Set the subtitle
+        if let subtitleField = cell.viewWithTag(2) as? NSTextField {
+            subtitleField.stringValue = details.joined(separator: " • ")
+        }
+        
+        return cell
     }
     
-    // MARK: - TableView Delegate
-    // Prevent row selection
-    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
-        return false
-    }
-    
-    // MARK: - Action Handlers
-    // Handle add button click
-    @MainActor
-    @objc private func addButtonClicked(_ sender: NSButton) {
-        Task { @MainActor in
-            let row = sender.tag
-            guard row < results.count else { return }
-            selectionCallback(results[row])
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        guard let tableView = notification.object as? NSTableView else { return }
+        let selectedRow = tableView.selectedRow
+        
+        if selectedRow >= 0 && selectedRow < results.count {
+            selectionCallback?(results[selectedRow])
         }
     }
 } 
