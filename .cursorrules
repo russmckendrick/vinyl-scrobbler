@@ -26,6 +26,10 @@ SwiftUI-Specific Usage
 	•	Use SwiftUI for all UI components and avoid UIKit where possible.
 	•	Use built-in macOS-specific SwiftUI components like NavigationSplitView, Sidebar, and Toolbar.
 	•	Prefer ObservableObject and State for managing state.
+	•	Use SwiftUI's built-in animations and transitions for smooth UI interactions.
+	•	Use windowStyle() and windowToolbarStyle() to customize the window.
+	•	Use SF Symbols for consistent icons.
+	•	Use windowGroup to define the main entry point for the application.
 
 Syntax and Formatting
 	•	Use consistent indentation (4 spaces).
