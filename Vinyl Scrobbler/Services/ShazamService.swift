@@ -91,11 +91,18 @@ class ShazamService: NSObject, SHSessionDelegate {
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         logger.info("Setting up audio capture with format: \(recordingFormat)")
         
+        // Remove existing tap if any
+        inputNode.removeTap(onBus: 0)
+        
+        // Install new tap with larger buffer size
         inputNode.installTap(onBus: 0, 
-                           bufferSize: 1024, 
+                           bufferSize: 2048, 
                            format: recordingFormat) { [weak self] (buffer: AVAudioPCMBuffer, time: AVAudioTime) in
             guard let self = self,
                   let session = self.session else { return }
+            
+            // Only process buffer if we're actively listening
+            guard self.isListening else { return }
             
             // Calculate audio level for debugging (optional)
             let level = buffer.rms()
@@ -106,6 +113,7 @@ class ShazamService: NSObject, SHSessionDelegate {
             session.matchStreamingBuffer(buffer, at: time)
         }
         
+        // Prepare engine before starting
         audioEngine.prepare()
         
         do {
@@ -181,6 +189,7 @@ class ShazamService: NSObject, SHSessionDelegate {
         
         audioEngine?.stop()
         audioEngine?.inputNode.removeTap(onBus: 0)
+        audioEngine = nil  // Release the engine
         isListening = false
         logger.info("Stopped listening for audio matches")
     }
