@@ -353,19 +353,74 @@ class LastFMService {
     }
     
     // MARK: - Track Information
-    public func getTrackInfo(artist: String, track: String) async throws -> SBKTrack {
-        guard let manager = manager else {
-            throw LastFMError.configurationMissing
+    struct TrackInfoResponse: Codable {
+        let track: TrackInfo
+    }
+    
+    struct TrackInfo: Codable {
+        let name: String
+        let artist: TrackArtist
+        let album: TrackAlbum?
+        let duration: String?
+        let url: String?
+        
+        private enum CodingKeys: String, CodingKey {
+            case name, artist, album, duration, url
+        }
+    }
+    
+    struct TrackArtist: Codable {
+        let name: String
+    }
+    
+    struct TrackAlbum: Codable {
+        let title: String
+        let artist: String
+        let url: String?
+        let image: [AlbumImage]?
+    }
+    
+    func getTrackInfo(artist: String, track: String) async throws -> TrackInfo {
+        guard let apiKey = SecureConfig.lastFMAPIKey else {
+            throw LastFMError.missingApiKey
+        }
+        
+        var components = URLComponents(string: "https://ws.audioscrobbler.com/2.0/")
+        components?.queryItems = [
+            URLQueryItem(name: "method", value: "track.getInfo"),
+            URLQueryItem(name: "api_key", value: apiKey),
+            URLQueryItem(name: "artist", value: artist),
+            URLQueryItem(name: "track", value: track),
+            URLQueryItem(name: "format", value: "json")
+        ]
+        
+        guard let url = components?.url else {
+            throw LastFMError.invalidURL
+        }
+        
+        logger.debug("🔍 Fetching track info for: \(track) by \(artist)")
+        
+        let (data, response) = try await session.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw LastFMError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw LastFMError.httpError(httpResponse.statusCode)
         }
         
         do {
-            logger.debug("🔍 Fetching track info from Last.fm for: \(track) by \(artist)")
-            let trackInfo = try await manager.getInfo(forTrack: track, artist: artist)
-            logger.info("✅ Successfully fetched track info from Last.fm")
-            return trackInfo
+            let decoder = JSONDecoder()
+            let result = try decoder.decode(TrackInfoResponse.self, from: data)
+            logger.info("✅ Successfully fetched track info for: \(result.track.name)")
+            return result.track
         } catch {
-            logger.error("❌ Failed to fetch track info: \(error.localizedDescription)")
-            throw error
+            logger.error("❌ Failed to decode track info response: \(error.localizedDescription)")
+            if let errorString = String(data: data, encoding: .utf8) {
+                logger.debug("Response data: \(errorString)")
+            }
+            throw LastFMError.decodingError(error)
         }
     }
     

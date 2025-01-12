@@ -52,6 +52,19 @@ struct MenuBarView: View {
                 appState.showDiscogsSearch = true
             }
         }
+        
+        Button("Listen") {
+            print("🎧 Listen clicked - Window visible: \(appState.windowVisible)")
+            if !appState.windowVisible {
+                print("📱 Opening main window for Listen")
+                openWindow(id: "main")
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("🎵 Showing Listen sheet")
+                appState.showListen = true
+            }
+        }
+        .keyboardShortcut("L", modifiers: [.command, .shift])
 
         Button("Settings") {
             print("⚙️ Settings clicked - Window visible: \(appState.windowVisible)")
