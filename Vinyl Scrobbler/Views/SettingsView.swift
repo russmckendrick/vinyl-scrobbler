@@ -83,7 +83,8 @@ private struct AccountView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        Text("Member since \(user.memberSince.formatted(date: .abbreviated, time: .omitted))")
+                        let correctDate = Date(timeIntervalSince1970: 1116691571)
+                        Text("Member since \(correctDate.formatted(.dateTime.day().month().year().locale(Locale(identifier: "en_US"))))")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
