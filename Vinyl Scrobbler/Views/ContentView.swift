@@ -39,6 +39,11 @@ struct ContentView: View {
                 .frame(width: 400, height: 400)
                 .background(Color(.windowBackgroundColor))
         }
+        .sheet(isPresented: $appState.showListen) {
+            ListenView(isPresented: $appState.showListen)
+                .frame(width: 300, height: 500)
+                .background(Color(.windowBackgroundColor))
+        }
     }
 }
 

@@ -14,12 +14,14 @@ class AppState: ObservableObject {
     @Published var showAbout = false
     @Published var showLastFMAuth = false
     @Published var showSettings = false
+    @Published var showListen = false
     @Published var isAuthenticated = false
     @Published var lastFMUser: SBKUser?
     @Published var discogsURI: String?
     @Published var showPlayer = true  // Start with the player visible
     @Published var windowVisible = true  // Track actual window visibility
     @Published var currentRelease: DiscogsRelease?
+    @Published var searchQuery: String = ""  // Add search query property
     
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService

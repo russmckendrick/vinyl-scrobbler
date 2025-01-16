@@ -40,7 +40,7 @@ struct DiscogsSearchView: View {
             } else {
                 Text("Enter a Discogs release ID, URL, or search for an album")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 20)
@@ -52,6 +52,11 @@ struct DiscogsSearchView: View {
         }
         .onAppear {
             viewModel.appState = appState
+            if !appState.searchQuery.isEmpty {
+                input = appState.searchQuery
+                performSearch()
+                appState.searchQuery = "" // Clear the query after using it
+            }
         }
     }
     
