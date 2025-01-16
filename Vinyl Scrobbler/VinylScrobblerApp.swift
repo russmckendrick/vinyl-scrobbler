@@ -64,7 +64,6 @@ struct MenuBarView: View {
                 appState.showListen = true
             }
         }
-        .keyboardShortcut("L", modifiers: [.command, .shift])
 
         Button("Settings") {
             print("⚙️ Settings clicked - Window visible: \(appState.windowVisible)")
