@@ -12,12 +12,12 @@ struct DurationView: View {
                 ZStack(alignment: .leading) {
                     // Background track
                     WaveformView(points: wavePoints)
-                        .fill(Color(nsColor: .tertiaryLabelColor))
+                        .fill(appState.currentTheme.foreground.tertiary)
                         .frame(height: 24)
                     
                     // Progress
                     WaveformView(points: wavePoints)
-                        .fill(.white)
+                        .fill(appState.currentTheme.foreground.primary)
                         .frame(width: geometry.size.width * progress, height: 24)
                         .clipShape(Rectangle())
                 }
@@ -49,13 +49,13 @@ struct DurationView: View {
             // Time labels
             HStack {
                 Text(formatDuration(Double(appState.currentPlaybackSeconds)))
-                    .foregroundColor(Color(nsColor: .secondaryLabelColor))
+                    .foregroundStyle(appState.currentTheme.foreground.secondary)
                     .font(.caption.monospaced())
                 
                 Spacer()
                 
                 Text(formatDuration(Double(appState.currentTrack?.durationSeconds ?? 0)))
-                    .foregroundColor(Color(nsColor: .secondaryLabelColor))
+                    .foregroundStyle(appState.currentTheme.foreground.secondary)
                     .font(.caption.monospaced())
             }
         }
@@ -133,9 +133,10 @@ struct SeededRandomNumberGenerator: RandomNumberGenerator {
 }
 
 #Preview {
-    DurationView()
-        .environmentObject(AppState())
+    let previewState = AppState()
+    return DurationView()
+        .environmentObject(previewState)
         .frame(maxWidth: 400)
         .padding()
-        .background(.black)
+        .background(previewState.currentTheme.background.primary)
 } 
