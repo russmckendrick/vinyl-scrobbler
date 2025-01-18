@@ -9,36 +9,40 @@ struct TrackInfoView: View {
                 // Track position and duration
                 HStack(spacing: 8) {
                     Text("#")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
                         .font(.system(size: 16, weight: .medium))
                     Text(track.position)
                         .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
                     
                     Image(systemName: "clock")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
                         .font(.system(size: 16, weight: .medium))
+                    
                     Text(track.duration ?? "--:--")
                         .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
                 }
-                .foregroundColor(.secondary)
                 
                 // Track title
                 Text(track.title)
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(appState.currentTheme.foreground.primary)
                     .multilineTextAlignment(.center)
                 
                 // Artist and Album with link
                 HStack(spacing: 4) {
                     Text(track.artist)
                         .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
                     
                     Text("-")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
                         .font(.system(size: 18, weight: .medium))
                     
                     Text(track.album)
                         .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
                     
                     if appState.discogsURI != nil {
                         Button {
@@ -48,16 +52,15 @@ struct TrackInfoView: View {
                         } label: {
                             Image(systemName: "link")
                                 .font(.system(size: 14))
+                                .foregroundStyle(appState.currentTheme.foreground.secondary)
                         }
                         .buttonStyle(.plain)
-                        .foregroundColor(.secondary)
                     }
                 }
-                .foregroundColor(.secondary)
             } else {
                 Text("No Track Selected")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(appState.currentTheme.foreground.secondary)
             }
         }
         .frame(maxWidth: .infinity)
@@ -66,9 +69,10 @@ struct TrackInfoView: View {
 }
 
 #Preview {
-    TrackInfoView()
-        .environmentObject(AppState.previewWithTracks)
+    let previewState = AppState()
+    return TrackInfoView()
+        .environmentObject(previewState)
         .frame(maxWidth: 400)
         .padding()
-        .background(.black)
+        .background(previewState.currentTheme.background.primary)
 } 
