@@ -2,34 +2,68 @@ import SwiftUI
 
 struct AlbumArtworkView: View {
     @EnvironmentObject private var appState: AppState
+    @State private var artworkImage: Image?
+    @State private var previousArtworkImage: Image?
     
     var body: some View {
-        ZStack {
-            if let track = appState.currentTrack {
-                // Show album artwork if available
-                AsyncImage(url: track.artworkURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    // Show placeholder while loading
-                    Image(systemName: "music.note")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
+        GeometryReader { geometry in
+            ZStack {
+                // Dynamic background that matches artwork
+                DynamicBackgroundView(artwork: artworkImage)
+                    .transition(.opacity)
+                
+                // Modern artwork presentation
+                VStack {
+                    if let track = appState.currentTrack {
+                        AsyncImage(url: track.artworkURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                ModernArtworkView(artwork: image)
+                                    .onAppear {
+                                        previousArtworkImage = artworkImage
+                                        withAnimation(.easeInOut(duration: 0.5)) {
+                                            artworkImage = image
+                                        }
+                                    }
+                            case .failure(_):
+                                ModernArtworkView(artwork: nil)
+                                    .onAppear {
+                                        withAnimation(.easeInOut(duration: 0.5)) {
+                                            artworkImage = nil
+                                        }
+                                    }
+                            case .empty:
+                                ProgressView()
+                                    .controlSize(.large)
+                            @unknown default:
+                                ModernArtworkView(artwork: nil)
+                                    .onAppear {
+                                        withAnimation(.easeInOut(duration: 0.5)) {
+                                            artworkImage = nil
+                                        }
+                                    }
+                            }
+                        }
+                    } else {
+                        ModernArtworkView(artwork: nil)
+                            .onAppear {
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    artworkImage = nil
+                                }
+                            }
+                    }
                 }
-            } else {
-                // Show empty state
-                VStack(spacing: 16) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 60))
-                    Text("No Album Loaded")
-                }
-                .foregroundColor(.secondary)
+                .frame(width: geometry.size.width)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.windowBackgroundColor))
-        .cornerRadius(8)
+        .onChange(of: appState.currentTrack) { oldTrack, newTrack in
+            if oldTrack?.artworkURL != newTrack?.artworkURL {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    // Clear artwork immediately when track changes
+                    artworkImage = nil
+                }
+            }
+        }
     }
 }
 
@@ -38,7 +72,7 @@ struct AlbumArtworkView_Previews: PreviewProvider {
     static var previews: some View {
         AlbumArtworkView()
             .environmentObject(AppState())
-            .frame(height: 400)
+            .frame(height: 600)
             .padding()
     }
 } 

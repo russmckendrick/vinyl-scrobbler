@@ -5,29 +5,41 @@ struct ContentView: View {
     @Environment(\.dismissSearch) private var dismissSearch
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Album artwork view
-            AlbumArtworkView()
-                .frame(height: 300)
-            
-            // Track info
-            TrackInfoView()
-            
-            // Playback controls
-            PlaybackControlsView()
-            
-            // Track list
-            TrackListView()
-                .frame(maxHeight: .infinity)
+        GeometryReader { geometry in
+            ZStack {
+                // Main content
+                VStack(spacing: 0) {
+                    // Album artwork view
+                    AlbumArtworkView()
+                        .frame(width: geometry.size.width, height: geometry.size.width)
+                    
+                    // Track info with blur background
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // Track info
+                            TrackInfoView()
+                                .padding(.top, 16)
+                            
+                            // Playback controls
+                            PlaybackControlsView()
+                            
+                            // Track list
+                            TrackListView()
+                        }
+                        .padding(24)
+                    }
+                    .background(.ultraThinMaterial)
+                }
+            }
         }
-        .padding(20)
         .frame(minWidth: 500, minHeight: 800)
-        .sheet(isPresented: $appState.showDiscogsSearch, onDismiss: {
-            print("Discogs search dismissed")
-        }) {
+        .background(Color(.windowBackgroundColor))
+        // Sheets
+        .sheet(isPresented: $appState.showDiscogsSearch) {
             DiscogsSearchView()
                 .frame(width: 600, height: 400)
-                .background(Color(.windowBackgroundColor))
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showDiscogsSearch = false
@@ -39,11 +51,11 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                 }
         }
-        .sheet(isPresented: $appState.showLastFMAuth, onDismiss: {
-            print("LastFM auth dismissed")
-        }) {
+        .sheet(isPresented: $appState.showLastFMAuth) {
             LastFMAuthView()
                 .frame(width: 400, height: 300)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showLastFMAuth = false
@@ -55,11 +67,11 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                 }
         }
-        .sheet(isPresented: $appState.showAbout, onDismiss: {
-            print("About dismissed")
-        }) {
+        .sheet(isPresented: $appState.showAbout) {
             AboutView()
                 .frame(width: 360, height: 600)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showAbout = false
@@ -71,12 +83,11 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                 }
         }
-        .sheet(isPresented: $appState.showSettings, onDismiss: {
-            print("Settings dismissed")
-        }) {
+        .sheet(isPresented: $appState.showSettings) {
             SettingsView()
                 .frame(width: 400, height: 400)
-                .background(Color(.windowBackgroundColor))
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showSettings = false
@@ -88,12 +99,11 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                 }
         }
-        .sheet(isPresented: $appState.showListen, onDismiss: {
-            print("Listen dismissed")
-        }) {
+        .sheet(isPresented: $appState.showListen) {
             ListenView(isPresented: $appState.showListen)
                 .frame(width: 300, height: 500)
-                .background(Color(.windowBackgroundColor))
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showListen = false
