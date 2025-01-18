@@ -8,7 +8,7 @@ struct ContentView: View {
         GeometryReader { geometry in
             ZStack {
                 // Base background
-                Color.black
+                appState.currentTheme.background.primary
                     .opacity(0.95)
                     .ignoresSafeArea()
                 
@@ -42,13 +42,13 @@ struct ContentView: View {
                         }
                     }
                     .padding(.horizontal, 24)
-                    .background(Color.black)
+                    .background(appState.currentTheme.background.primary)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                    .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
             )
         }
         .frame(minWidth: 500, minHeight: 800)
@@ -56,18 +56,18 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showDiscogsSearch) {
             DiscogsSearchView()
                 .frame(width: 600, height: 400)
-                .background(Color(nsColor: .black).opacity(0.95))
+                .background(appState.currentTheme.background.overlay)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
                 )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showDiscogsSearch = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
@@ -76,18 +76,18 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showLastFMAuth) {
             LastFMAuthView()
                 .frame(width: 400, height: 300)
-                .background(Color(nsColor: .black).opacity(0.95))
+                .background(appState.currentTheme.background.overlay)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
                 )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showLastFMAuth = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
@@ -96,18 +96,18 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showAbout) {
             AboutView()
                 .frame(width: 360, height: 600)
-                .background(Color(nsColor: .black).opacity(0.95))
+                .background(appState.currentTheme.background.overlay)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
                 )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showAbout = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
@@ -116,18 +116,18 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showSettings) {
             SettingsView()
                 .frame(width: 400, height: 400)
-                .background(Color(nsColor: .black).opacity(0.95))
+                .background(appState.currentTheme.background.overlay)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
                 )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showSettings = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
@@ -136,18 +136,18 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showListen) {
             ListenView(isPresented: $appState.showListen)
                 .frame(width: 300, height: 500)
-                .background(Color(nsColor: .black).opacity(0.95))
+                .background(appState.currentTheme.background.overlay)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
                 )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showListen = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
