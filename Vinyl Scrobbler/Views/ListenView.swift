@@ -16,6 +16,7 @@ struct ListenView: View {
             Text("Listen")
                 .font(.title3)
                 .fontWeight(.semibold)
+                .foregroundStyle(appState.currentTheme.foreground.primary)
             
             Spacer()
             
@@ -40,7 +41,7 @@ struct ListenView: View {
                     .overlay(
                         Image(systemName: viewModel.currentStatus.systemImage)
                             .font(.system(size: 32))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(appState.currentTheme.foreground.primary)
                     )
             }
             .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), 
@@ -50,7 +51,7 @@ struct ListenView: View {
             if let error = viewModel.errorMessage {
                 Text(error)
                     .font(.headline)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(appState.currentTheme.status.error)
                     .multilineTextAlignment(.center)
             } else {
                 Text(viewModel.currentStatus.message)
@@ -77,7 +78,7 @@ struct ListenView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(viewModel.buttonColor)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(appState.currentTheme.foreground.primary)
                     .cornerRadius(8)
             }
             .buttonStyle(.plain)
@@ -87,13 +88,13 @@ struct ListenView: View {
             if viewModel.isListening {
                 Text("Make sure your music is playing and audible")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(appState.currentTheme.foreground.secondary)
                     .multilineTextAlignment(.center)
             }
         }
         .padding(24)
         .frame(width: 300, height: 400)
-        .background(Color.black)
+        .background(appState.currentTheme.background.primary)
         .alert("Error", isPresented: $viewModel.showError) {
             Button("OK") {}
         } message: {
@@ -108,5 +109,4 @@ struct ListenView: View {
 #Preview {
     ListenView(isPresented: .constant(true))
         .environmentObject(AppState())
-        .preferredColorScheme(.dark)
 } 

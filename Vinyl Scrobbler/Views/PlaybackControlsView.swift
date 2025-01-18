@@ -13,7 +13,7 @@ struct PlaybackControlsView: View {
                     .font(.title2)
             }
             .buttonStyle(.plain)
-            .foregroundColor(!appState.canPlayPrevious ? Color(nsColor: .disabledControlTextColor) : .white)
+            .foregroundStyle(!appState.canPlayPrevious ? appState.currentTheme.foreground.tertiary : appState.currentTheme.foreground.primary)
             .disabled(!appState.canPlayPrevious)
             
             // Play/Pause button
@@ -24,9 +24,9 @@ struct PlaybackControlsView: View {
                     .font(.system(size: 44))
             }
             .buttonStyle(.plain)
-            .foregroundColor(appState.tracks.isEmpty ? Color(nsColor: .disabledControlTextColor) : .white)
+            .foregroundStyle(appState.tracks.isEmpty ? appState.currentTheme.foreground.tertiary : appState.currentTheme.foreground.primary)
             .disabled(appState.tracks.isEmpty)
-            .shadow(color: .black.opacity(0.3), radius: 10)
+            .shadow(color: appState.currentTheme.artwork.shadow, radius: 10)
             
             // Next track button
             Button {
@@ -36,7 +36,7 @@ struct PlaybackControlsView: View {
                     .font(.title2)
             }
             .buttonStyle(.plain)
-            .foregroundColor(!appState.canPlayNext ? Color(nsColor: .disabledControlTextColor) : .white)
+            .foregroundStyle(!appState.canPlayNext ? appState.currentTheme.foreground.tertiary : appState.currentTheme.foreground.primary)
             .disabled(!appState.canPlayNext)
         }
         .frame(maxWidth: .infinity)
@@ -45,9 +45,10 @@ struct PlaybackControlsView: View {
 }
 
 #Preview {
-    PlaybackControlsView()
-        .environmentObject(AppState())
+    let previewState = AppState()
+    return PlaybackControlsView()
+        .environmentObject(previewState)
         .frame(maxWidth: 400)
         .padding()
-        .background(.black)
+        .background(previewState.currentTheme.background.primary)
 } 
