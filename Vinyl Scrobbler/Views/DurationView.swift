@@ -15,32 +15,34 @@ struct DurationView: View {
                         .fill(Color(nsColor: .tertiaryLabelColor))
                         .frame(height: 24)
                     
-                    // Progress overlay
-                    ZStack {
-                        // Full white waveform
-                        WaveformView(points: wavePoints)
-                            .fill(.white)
-                            .frame(height: 24)
-                    }
-                    .frame(width: geometry.size.width)
-                    .clipShape(
-                        Rectangle()
-                            .size(
-                                width: geometry.size.width * progress,
-                                height: geometry.size.height
-                            )
-                    )
+                    // Progress
+                    WaveformView(points: wavePoints)
+                        .fill(.white)
+                        .frame(width: geometry.size.width * progress, height: 24)
+                        .clipShape(Rectangle())
                 }
             }
             .frame(height: 24)
             .onChange(of: appState.currentTrack?.title) { _, title in
                 if let title = title {
                     generateWaveform(width: 100, title: title)
+                } else {
+                    // Generate placeholder waveform when no track is loaded
+                    wavePoints = DynamicPlaceholderView.generatePlaceholderWaveform(
+                        width: 100,
+                        timeInterval: Date().timeIntervalSince1970
+                    )
                 }
             }
             .onAppear {
                 if let title = appState.currentTrack?.title {
                     generateWaveform(width: 100, title: title)
+                } else {
+                    // Generate placeholder waveform when no track is loaded
+                    wavePoints = DynamicPlaceholderView.generatePlaceholderWaveform(
+                        width: 100,
+                        timeInterval: Date().timeIntervalSince1970
+                    )
                 }
             }
             
