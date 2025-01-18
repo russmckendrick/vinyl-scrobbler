@@ -14,24 +14,25 @@ struct ContentView: View {
                 
                 // Main content container
                 VStack(spacing: 0) {
-                    // Album artwork view
-                    AlbumArtworkView()
-                        .frame(width: geometry.size.width, height: geometry.size.width)
+                    // Album artwork view with overlaid track list
+                    ZStack(alignment: .bottom) {
+                        AlbumArtworkView()
+                            .frame(width: geometry.size.width, height: geometry.size.width)
+                        
+                        TrackListView()
+                            .padding(.horizontal)
+                    }
                     
                     // Content area
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            TrackInfoView()
-                            
-                            PlaybackControlsView()
-                            
-                            TrackListView()
-                                .padding(.top, 8)
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 8)
+                    VStack(spacing: 16) {
+                        TrackInfoView()
+                        PlaybackControlsView()
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
                     .background(Color.black)
+                    
+                    Spacer(minLength: 0)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 12))
