@@ -2,6 +2,7 @@ import Foundation
 import ShazamKit
 import OSLog
 import AVFAudio
+import AppKit
 
 // MARK: - Error Handling
 enum ShazamError: LocalizedError {
@@ -153,25 +154,8 @@ class ShazamService: NSObject, SHSessionDelegate {
             return
         }
         
-        // Check microphone permissions using macOS API
-        switch AVCaptureDevice.authorizationStatus(for: .audio) {
-        case .notDetermined:
-            logger.debug("Requesting microphone permission...")
-            let granted = await AVCaptureDevice.requestAccess(for: .audio)
-            guard granted else {
-                logger.error("Microphone permission denied by user")
-                throw ShazamError.microphoneAccessDenied
-            }
-            logger.debug("Microphone permission granted")
-        case .denied, .restricted:
-            logger.error("Microphone access is denied or restricted")
-            throw ShazamError.microphoneAccessDenied
-        case .authorized:
-            logger.debug("Microphone permission already granted")
-        @unknown default:
-            logger.warning("Unknown microphone permission status")
-            break
-        }
+        // Check microphone permission first
+        try await checkMicrophonePermission()
         
         do {
             logger.debug("Setting up audio engine...")
