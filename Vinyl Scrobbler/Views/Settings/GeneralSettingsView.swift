@@ -26,7 +26,7 @@ struct GeneralSettingsView: View {
                             .foregroundStyle(appState.currentTheme.foreground.secondary)
                     }
                 }
-                .onChange(of: useSystemTheme) { newValue in
+                .onChange(of: useSystemTheme) { oldValue, newValue in
                     if newValue {
                         appState.themeMode = .system
                     } else {
