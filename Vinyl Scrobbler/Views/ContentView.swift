@@ -7,39 +7,50 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Main content
+                // Base background
+                Color.black
+                    .opacity(0.95)
+                    .ignoresSafeArea()
+                
+                // Main content container
                 VStack(spacing: 0) {
                     // Album artwork view
                     AlbumArtworkView()
                         .frame(width: geometry.size.width, height: geometry.size.width)
                     
-                    // Track info with blur background
+                    // Content area
                     ScrollView {
-                        VStack(spacing: 24) {
-                            // Track info
+                        VStack(spacing: 16) {
                             TrackInfoView()
-                                .padding(.top, 16)
                             
-                            // Playback controls
                             PlaybackControlsView()
                             
-                            // Track list
                             TrackListView()
+                                .padding(.top, 8)
                         }
-                        .padding(24)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 8)
                     }
-                    .background(.ultraThinMaterial)
+                    .background(Color.black)
                 }
             }
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+            )
         }
         .frame(minWidth: 500, minHeight: 800)
-        .background(Color(.windowBackgroundColor))
-        // Sheets
+        // Sheets with consistent styling
         .sheet(isPresented: $appState.showDiscogsSearch) {
             DiscogsSearchView()
                 .frame(width: 600, height: 400)
-                .background(.ultraThinMaterial)
+                .background(Color(nsColor: .black).opacity(0.95))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showDiscogsSearch = false
@@ -54,8 +65,12 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showLastFMAuth) {
             LastFMAuthView()
                 .frame(width: 400, height: 300)
-                .background(.ultraThinMaterial)
+                .background(Color(nsColor: .black).opacity(0.95))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showLastFMAuth = false
@@ -70,8 +85,12 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showAbout) {
             AboutView()
                 .frame(width: 360, height: 600)
-                .background(.ultraThinMaterial)
+                .background(Color(nsColor: .black).opacity(0.95))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showAbout = false
@@ -86,8 +105,12 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showSettings) {
             SettingsView()
                 .frame(width: 400, height: 400)
-                .background(.ultraThinMaterial)
+                .background(Color(nsColor: .black).opacity(0.95))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showSettings = false
@@ -102,8 +125,12 @@ struct ContentView: View {
         .sheet(isPresented: $appState.showListen) {
             ListenView(isPresented: $appState.showListen)
                 .frame(width: 300, height: 500)
-                .background(.ultraThinMaterial)
+                .background(Color(nsColor: .black).opacity(0.95))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showListen = false
@@ -118,10 +145,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Preview
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-            .environmentObject(AppState())
-    }
+#Preview {
+    ContentView()
+        .environmentObject(AppState())
 } 

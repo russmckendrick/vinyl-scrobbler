@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ModernArtworkView: View {
     let artwork: Image?
-    @State private var isHovered: Bool = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -11,23 +10,37 @@ struct ModernArtworkView: View {
                     artwork
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: geometry.size.width)
+                        .frame(width: geometry.size.width - 40)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
                         .shadow(
-                            color: .black.opacity(0.4),
-                            radius: isHovered ? 30 : 20,
+                            color: .black.opacity(0.25),
+                            radius: 30,
                             x: 0,
-                            y: isHovered ? 10 : 5
+                            y: 10
                         )
-                        .scaleEffect(isHovered ? 1.02 : 1.0)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(.white.opacity(0.1), lineWidth: 1)
+                        }
                 } else {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.ultraThinMaterial)
-                        .frame(width: geometry.size.width)
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(.windowBackgroundColor))
+                        .frame(width: geometry.size.width - 40)
                         .aspectRatio(1, contentMode: .fit)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(.white.opacity(0.1), lineWidth: 1)
+                        }
                         .overlay(
                             Image(systemName: "opticaldisc")
                                 .font(.system(size: 80))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
+                        )
+                        .shadow(
+                            color: .black.opacity(0.25),
+                            radius: 30,
+                            x: 0,
+                            y: 10
                         )
                 }
             }
@@ -35,10 +48,6 @@ struct ModernArtworkView: View {
                 x: geometry.frame(in: .local).midX,
                 y: geometry.frame(in: .local).midY
             )
-        }
-        .animation(.spring(response: 0.3), value: isHovered)
-        .onHover { hovering in
-            isHovered = hovering
         }
     }
 } 

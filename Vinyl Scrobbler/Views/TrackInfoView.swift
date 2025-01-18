@@ -1,74 +1,91 @@
 import SwiftUI
+import AppKit
 
 struct TrackInfoView: View {
     @EnvironmentObject private var appState: AppState
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             if let track = appState.currentTrack {
-                // Track title
-                Text(track.title)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                
-                // Album title
-                HStack(spacing: 8) {
-                    Text(track.album)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    
-                    // Discogs icon
-                    if let discogsURLString = appState.discogsURI, let discogsURL = URL(string: discogsURLString) {
-                        Link(destination: discogsURL) {
-                            Image(systemName: "link.circle")
+                VStack(alignment: .leading, spacing: 8) {
+                    // Track title and metadata group
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("#")
                                 .foregroundColor(.secondary)
+                            Text(track.position)
+                                .foregroundColor(.secondary)
+                            
+                            Image(systemName: "clock")
+                                .foregroundColor(.secondary)
+                            Text(track.duration ?? "--:--")
+                                .foregroundColor(.secondary)
+                        }
+                        .font(.caption)
+                        
+                        Text(track.title)
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                    
+                    // Artist and album info
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Artist name
+                        Text(track.artist)
+                            .font(.title3)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        
+                        // Album with Discogs link
+                        HStack(spacing: 6) {
+                            Text(track.album)
+                                .font(.title3)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            
+                            if let discogsURLString = appState.discogsURI,
+                               let discogsURL = URL(string: discogsURLString) {
+                                Link(destination: discogsURL) {
+                                    Image(systemName: "link")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
                     }
                 }
-                
-                // Artist name
-                Text(track.artist)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                
-                // Track duration and position
-                HStack(spacing: 12) {
-                    Label(track.position, systemImage: "number")
-                        .foregroundColor(.secondary)
-                    
-                    if let duration = track.duration {
-                        Label(duration, systemImage: "clock")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .font(.caption)
-                .padding(.top, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.7),
+                            Color.black.opacity(0.8),
+                            Color.black.opacity(0.9)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
             } else {
                 // Placeholder when no track is selected
                 Text("No Track Selected")
                     .font(.title2)
                     .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(20)
+                    .background(Color.black.opacity(0.8))
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal)
-        .animation(.easeInOut, value: appState.currentTrack)
     }
 }
 
-// MARK: - Preview
-struct TrackInfoView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            // Preview with track
-            TrackInfoView()
-                .environmentObject(AppState())
-        }
-    }
+#Preview {
+    TrackInfoView()
+        .environmentObject(AppState())
 } 

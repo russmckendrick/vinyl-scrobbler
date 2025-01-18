@@ -1,6 +1,7 @@
 import SwiftUI
 import UserNotifications
 import os.log
+import AppKit
 
 @main
 struct VinylScrobblerApp: App {
@@ -20,9 +21,19 @@ struct VinylScrobblerApp: App {
             MainView()
                 .environmentObject(appState)
                 .frame(minWidth: 500, minHeight: 800)
+                .background(.clear)
+                .preferredColorScheme(.dark)
+                .onAppear {
+                    // Configure window appearance after the app is initialized
+                    if let darkAqua = NSAppearance(named: .darkAqua) {
+                        NSApp.appearance = darkAqua
+                    }
+                }
         }
         .defaultSize(width: 500, height: 800)
         .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .windowToolbarStyle(.unifiedCompact)
         
         MenuBarExtra {
             MenuBarView()
