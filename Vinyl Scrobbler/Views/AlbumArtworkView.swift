@@ -22,14 +22,7 @@ struct AlbumArtworkView: View {
                             .clipped()
                             .overlay(
                                 LinearGradient(
-                                    colors: [
-                                        .clear,
-                                        .clear,
-                                        .clear,
-                                        .black.opacity(0.3),
-                                        .black.opacity(0.6),
-                                        .black
-                                    ],
+                                    colors: appState.currentTheme.artwork.overlay.gradient,
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
@@ -58,8 +51,9 @@ struct AlbumArtworkView: View {
 }
 
 #Preview {
-    AlbumArtworkView()
-        .environmentObject(AppState())
+    let previewState = AppState()
+    return AlbumArtworkView()
+        .environmentObject(previewState)
         .frame(width: 400, height: 400)
-        .background(.black)
+        .background(previewState.currentTheme.background.primary)
 } 
