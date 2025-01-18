@@ -36,18 +36,96 @@ enum ShazamError: LocalizedError {
 
 // MARK: - Match Result
 struct ShazamMatchResult {
+    private static let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "ShazamMatchResult")
+    
     let title: String
     let artist: String
+    let album: String
     let genres: [String]
     let appleMusicURL: URL?
     let artworkURL: URL?
     
-    init(from match: SHMatch) {
-        self.title = match.mediaItems.first?.title ?? ""
-        self.artist = match.mediaItems.first?.artist ?? ""
+    init(from match: SHMatch) async throws {
+        let rawTitle = match.mediaItems.first?.title ?? ""
+        let rawArtist = match.mediaItems.first?.artist ?? ""
+        
+        // Clean up the track title and artist
+        self.title = Self.cleanupTitle(rawTitle)
+        self.artist = rawArtist
+        
+        // Try to get album info from Last.fm
+        do {
+            let trackInfo = try await LastFMService.shared.getTrackInfo(
+                artist: rawArtist,
+                track: self.title
+            )
+            self.album = trackInfo.album?.title ?? rawTitle
+            let albumInfoMessage = "✅ Found album info from Last.fm: " + (trackInfo.album?.title ?? rawTitle)
+            Self.logger.info("\(albumInfoMessage)")
+        } catch {
+            let errorMessage = "⚠️ Failed to get album info from Last.fm: \(error.localizedDescription)"
+            Self.logger.warning("\(errorMessage)")
+            // If Last.fm lookup fails, use the track title as album
+            self.album = rawTitle
+        }
+        
         self.genres = match.mediaItems.first?.genres ?? []
         self.appleMusicURL = match.mediaItems.first?.appleMusicURL
         self.artworkURL = match.mediaItems.first?.artworkURL
+        
+        let debugMessage = """
+            🎵 Processed Shazam match:
+            Track: \(title)
+            Artist: \(artist)
+            Album: \(album)
+            """
+        Self.logger.debug("\(debugMessage)")
+    }
+    
+    // Helper method to create Discogs search parameters
+    func createDiscogsSearchParameters() -> DiscogsService.SearchParameters {
+        DiscogsService.SearchParameters(
+            query: "",  // We'll let the struct build this from artist and title
+            releaseTitle: self.album,
+            artist: self.artist
+        )
+    }
+    
+    private static func cleanupTitle(_ title: String) -> String {
+        // Common suffixes to remove
+        let suffixesToRemove = [
+            "(Remastered)",
+            "(Remastered \\d{4})",  // e.g., (Remastered 2015)
+            "\\(\\d{4} Remaster\\)", // e.g., (2015 Remaster)
+            "(Deluxe Edition)",
+            "(Deluxe Version)",
+            "(Deluxe)",
+            "(Special Edition)",
+            "(Anniversary Edition)",
+            "(\\d+th Anniversary Edition)",  // e.g., (50th Anniversary Edition)
+            "(Expanded Edition)",
+            "(Bonus Track Version)",
+            "(Digital Remaster)",
+            "(\\d{4} Digital Remaster)",  // e.g., (2009 Digital Remaster)
+            "- Remastered",
+            "- Remastered \\d{4}",  // e.g., - Remastered 2015
+        ]
+        
+        var cleanTitle = title
+        
+        // Remove each suffix pattern
+        for suffix in suffixesToRemove {
+            let regex = try? NSRegularExpression(pattern: suffix + "\\s*$", options: [.caseInsensitive])
+            cleanTitle = regex?.stringByReplacingMatches(
+                in: cleanTitle,
+                options: [],
+                range: NSRange(cleanTitle.startIndex..., in: cleanTitle),
+                withTemplate: ""
+            ) ?? cleanTitle
+        }
+        
+        // Trim any remaining whitespace
+        return cleanTitle.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
@@ -187,9 +265,14 @@ class ShazamService: NSObject, SHSessionDelegate {
                 return
             }
             
-            let result = ShazamMatchResult(from: match)
-            logger.info("Found match: \(result.title) by \(result.artist)")
-            matchHandler?(.success(result))
+            do {
+                let result = try await ShazamMatchResult(from: match)
+                logger.info("Found match: \(result.title) from album \(result.album) by \(result.artist)")
+                matchHandler?(.success(result))
+            } catch {
+                logger.error("Failed to process match: \(error.localizedDescription)")
+                matchHandler?(.failure(error))
+            }
         }
     }
     

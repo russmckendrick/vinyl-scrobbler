@@ -110,24 +110,88 @@ class DiscogsService {
         var barcode: String?
         var track: String?
         var page: Int = 1
+        
+        // Clean up the query and title fields
+        var cleanedQuery: String {
+            if let artist = artist, let title = title {
+                // If we have both artist and title, create a cleaned combined query
+                return "\(artist) - \(Self.cleanupTitle(title))"
+            } else if let artist = artist, let releaseTitle = releaseTitle {
+                // If we have both artist and releaseTitle, create a cleaned combined query
+                return "\(artist) - \(Self.cleanupTitle(releaseTitle))"
+            } else {
+                // Otherwise just clean the raw query
+                return Self.cleanupTitle(query)
+            }
+        }
+        
+        var cleanedTitle: String? {
+            title.map(Self.cleanupTitle)
+        }
+        
+        var cleanedReleaseTitle: String? {
+            releaseTitle.map(Self.cleanupTitle)
+        }
+        
+        var cleanedArtist: String? {
+            artist.map(Self.cleanupTitle)
+        }
+        
+        // Title cleanup function
+        private static func cleanupTitle(_ title: String) -> String {
+            // Common suffixes to remove
+            let suffixesToRemove = [
+                "(Remastered)",
+                "(Remastered \\d{4})",  // e.g., (Remastered 2015)
+                "\\(\\d{4} Remaster\\)", // e.g., (2015 Remaster)
+                "(Deluxe Edition)",
+                "(Deluxe Version)",
+                "(Deluxe)",
+                "(Special Edition)",
+                "(Anniversary Edition)",
+                "(\\d+th Anniversary Edition)",  // e.g., (50th Anniversary Edition)
+                "(Expanded Edition)",
+                "(Bonus Track Version)",
+                "(Digital Remaster)",
+                "(\\d{4} Digital Remaster)",  // e.g., (2009 Digital Remaster)
+                "- Remastered",
+                "- Remastered \\d{4}",  // e.g., - Remastered 2015
+            ]
+            
+            var cleanTitle = title
+            
+            // Remove each suffix pattern
+            for suffix in suffixesToRemove {
+                let regex = try? NSRegularExpression(pattern: suffix + "\\s*$", options: [.caseInsensitive])
+                cleanTitle = regex?.stringByReplacingMatches(
+                    in: cleanTitle,
+                    options: [],
+                    range: NSRange(cleanTitle.startIndex..., in: cleanTitle),
+                    withTemplate: ""
+                ) ?? cleanTitle
+            }
+            
+            // Trim any remaining whitespace
+            return cleanTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
     }
     
     func searchReleases(_ parameters: SearchParameters) async throws -> DiscogsSearchResponse {
         var components = URLComponents(string: "https://api.discogs.com/database/search")!
         var queryItems = [
-            URLQueryItem(name: "q", value: parameters.query),
+            URLQueryItem(name: "q", value: parameters.cleanedQuery),
             URLQueryItem(name: "type", value: parameters.type),
             URLQueryItem(name: "page", value: String(parameters.page))
         ]
         
-        // Add optional parameters if they exist
-        if let title = parameters.title {
+        // Add optional parameters if they exist, using cleaned versions for titles
+        if let title = parameters.cleanedTitle {
             queryItems.append(URLQueryItem(name: "title", value: title))
         }
-        if let releaseTitle = parameters.releaseTitle {
+        if let releaseTitle = parameters.cleanedReleaseTitle {
             queryItems.append(URLQueryItem(name: "release_title", value: releaseTitle))
         }
-        if let artist = parameters.artist {
+        if let artist = parameters.cleanedArtist {
             queryItems.append(URLQueryItem(name: "artist", value: artist))
         }
         if let label = parameters.label {
