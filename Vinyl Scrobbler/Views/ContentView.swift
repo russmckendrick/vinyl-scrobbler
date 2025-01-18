@@ -24,20 +24,25 @@ struct ContentView: View {
                     }
                     
                     // Content area
-                    VStack(spacing: 16) {
-                        PlaybackControlsView()
-                            .padding(.top, 8)
-                        
+                    VStack(spacing: 0) {
+                        // Track info section with flexible spacing
+                        Spacer()
                         TrackInfoView()
+                        Spacer()
                         
-                        // Duration view will be moved to its own component
-                        DurationView()
-                            .padding(.bottom, 8)
+                        // Bottom section with controls and duration
+                        VStack(spacing: 16) {
+                            // Playback controls
+                            PlaybackControlsView()
+                                .padding(.horizontal, 40) // More horizontal spacing for controls
+                            
+                            // Duration view
+                            DurationView()
+                                .padding(.bottom, 16)
+                        }
                     }
                     .padding(.horizontal, 24)
                     .background(Color.black)
-                    
-                    Spacer(minLength: 0)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 12))

@@ -4,7 +4,7 @@ struct PlaybackControlsView: View {
     @EnvironmentObject private var appState: AppState
     
     var body: some View {
-        HStack(spacing: 24) {
+        HStack(spacing: 40) {
             // Previous track button
             Button {
                 appState.previousTrack()
@@ -40,6 +40,7 @@ struct PlaybackControlsView: View {
             .disabled(!appState.canPlayNext)
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
 }
 
