@@ -26,6 +26,9 @@ class AppState: ObservableObject {
     @Published var duration: Double = 0
     @Published var wavePhase: Double = 0
     
+    @AppStorage("blurArtwork") var blurArtwork: Bool = false
+    @AppStorage("showNotifications") var showNotifications: Bool = true
+    
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
     private var playbackTimer: Timer?
@@ -183,31 +186,15 @@ class AppState: ObservableObject {
     }
     
     private func scrobbleCurrentTrack() {
-        guard isAuthenticated, let track = currentTrack else { return }
+        guard let track = currentTrack else { return }
         
         Task {
             do {
-                print("📝 Scrobbling track: \(track.title)")
                 try await lastFMService.scrobbleTrack(track: track)
-                print("✅ Successfully scrobbled: \(track.title)")
-                
-                // Check if notifications are enabled
-                if UserDefaults.standard.bool(forKey: "enableNotifications") {
-                    let content = UNMutableNotificationContent()
-                    content.title = "Track Scrobbled"
-                    content.subtitle = track.title
-                    content.body = "\(track.artist) - \(track.album)"
-                    
-                    let request = UNNotificationRequest(
-                        identifier: UUID().uuidString,
-                        content: content,
-                        trigger: nil
-                    )
-                    
-                    try? await UNUserNotificationCenter.current().add(request)
-                }
+                print("✅ Scrobbled: \(track.title)")
+                sendScrobbleNotification(for: track)
             } catch {
-                print("❌ Failed to scrobble track: \(error.localizedDescription)")
+                print("❌ Scrobble failed: \(error.localizedDescription)")
             }
         }
     }
@@ -396,5 +383,24 @@ class AppState: ObservableObject {
     
     var canPlayNext: Bool {
         currentTrackIndex < tracks.count - 1
+    }
+    
+    private func sendScrobbleNotification(for track: Track) {
+        guard showNotifications else { return }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Track Scrobbled"
+        content.body = "\(track.title) by \(track.artist)"
+        content.sound = .default
+        
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil
+        )
+        
+        Task {
+            try? await UNUserNotificationCenter.current().add(request)
+        }
     }
 } 

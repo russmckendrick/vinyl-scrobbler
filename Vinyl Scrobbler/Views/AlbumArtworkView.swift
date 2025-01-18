@@ -18,6 +18,7 @@ struct AlbumArtworkView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: geometry.size.width, height: geometry.size.height)
+                            .blur(radius: appState.blurArtwork ? 20 : 0)
                             .clipped()
                             .overlay(
                                 LinearGradient(
@@ -52,6 +53,7 @@ struct AlbumArtworkView: View {
         }
         .ignoresSafeArea(.all, edges: [.top, .leading, .trailing])
         .animation(.easeInOut, value: appState.currentTrack?.artworkURL)
+        .animation(.easeInOut, value: appState.blurArtwork)
     }
 }
 

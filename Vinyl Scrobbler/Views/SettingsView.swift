@@ -13,7 +13,7 @@ struct SettingsView: View {
                 }
                 .tag("Account")
             
-            GeneralView()
+            GeneralSettingsView()
                 .tabItem {
                     Label("General", systemImage: "gear")
                 }
@@ -163,31 +163,6 @@ private struct AccountView: View {
             
             isAuthenticating = false
         }
-    }
-}
-
-private struct GeneralView: View {
-    @AppStorage("enableNotifications") private var enableNotifications = true
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("General Settings")
-                .font(.headline)
-                .padding(.bottom)
-            
-            Toggle(isOn: $enableNotifications) {
-                VStack(alignment: .leading) {
-                    Text("Show Notifications")
-                        .font(.body)
-                    Text("Display notifications when tracks are scrobbled")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-        }
-        .padding()
     }
 }
 
