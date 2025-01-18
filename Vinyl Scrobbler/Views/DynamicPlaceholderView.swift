@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DynamicPlaceholderView: View {
+    @EnvironmentObject private var appState: AppState
     @State private var gradientColors: [Color] = []
     @State private var previousColors: [Color] = []
     
@@ -16,14 +17,7 @@ struct DynamicPlaceholderView: View {
                 
                 // Gradient overlay for player transition
                 LinearGradient(
-                    colors: [
-                        .clear,
-                        .clear,
-                        .clear,
-                        .black.opacity(0.3),
-                        .black.opacity(0.6),
-                        .black
-                    ],
+                    colors: appState.currentTheme.artwork.overlay.gradient,
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -31,7 +25,7 @@ struct DynamicPlaceholderView: View {
                 // Vinyl icon overlay
                 Image(systemName: "opticaldisc.fill")
                     .font(.system(size: geometry.size.width * 0.3))
-                    .foregroundStyle(.white.opacity(0.15))
+                    .foregroundStyle(appState.currentTheme.foreground.primary.opacity(0.15))
             }
         }
         .aspectRatio(1, contentMode: .fill)
@@ -118,7 +112,9 @@ struct DynamicPlaceholderView: View {
 }
 
 #Preview {
-    DynamicPlaceholderView()
+    let previewState = AppState()
+    return DynamicPlaceholderView()
+        .environmentObject(previewState)
         .frame(width: 400, height: 400)
-        .background(.black)
+        .background(previewState.currentTheme.background.primary)
 } 
