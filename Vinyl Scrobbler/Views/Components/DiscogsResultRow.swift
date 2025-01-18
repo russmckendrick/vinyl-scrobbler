@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DiscogsResultRow: View {
     let result: DiscogsSearchResponse.SearchResult
+    @EnvironmentObject private var appState: AppState
     
     private var formattedDetails: String {
         var details: [String] = []
@@ -30,30 +31,36 @@ struct DiscogsResultRow: View {
                     .aspectRatio(contentMode: .fit)
             } placeholder: {
                 Image(systemName: "music.note")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(appState.currentTheme.foreground.secondary)
                     .frame(width: 30, height: 30)
             }
             .frame(width: 50, height: 50)
             .cornerRadius(4)
-            .background(Color.gray.opacity(0.1))
+            .background(appState.currentTheme.background.secondary.opacity(0.1))
             
             // Text content
             VStack(alignment: .leading, spacing: 4) {
                 Text(result.title)
                     .font(.headline)
+                    .foregroundStyle(appState.currentTheme.foreground.primary)
                     .lineLimit(1)
                 
                 Text(formattedDetails)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(appState.currentTheme.foreground.secondary)
                     .lineLimit(1)
             }
             
             Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(appState.currentTheme.foreground.secondary)
         }
         .padding(.vertical, 8)
-        .contentShape(Rectangle())
-        .background(Color.clear)
+        .padding(.horizontal, 12)
+        .background(appState.currentTheme.background.secondary)
+        .cornerRadius(8)
     }
 }
 
@@ -86,4 +93,5 @@ struct DiscogsResultRow: View {
     }
     .frame(width: 400)
     .padding()
+    .environmentObject(AppState())
 } 
