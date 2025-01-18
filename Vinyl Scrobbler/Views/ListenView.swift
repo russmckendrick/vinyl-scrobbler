@@ -13,11 +13,9 @@ struct ListenView: View {
     var body: some View {
         VStack(spacing: 20) {
             // Header
-            HStack {
-                Text("Listen")
-                    .font(.headline)
-                Spacer()
-            }
+            Text("Listen")
+                .font(.title3)
+                .fontWeight(.semibold)
             
             Spacer()
             
@@ -33,34 +31,27 @@ struct ListenView: View {
                 Circle()
                     .fill(viewModel.currentStatus.color.opacity(0.2))
                     .frame(width: 120, height: 120)
-                    .scaleEffect(viewModel.animationAmount)
+                    .scaleEffect(viewModel.animationAmount * 0.8)
                 
                 // Inner circle with icon
                 Circle()
                     .fill(viewModel.currentStatus.color.opacity(0.3))
                     .frame(width: 80, height: 80)
-                
-                Image(systemName: viewModel.currentStatus.systemImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 40, height: 40)
-                    .foregroundStyle(viewModel.currentStatus.color)
+                    .overlay(
+                        Image(systemName: viewModel.currentStatus.systemImage)
+                            .font(.system(size: 32))
+                            .foregroundStyle(.white)
+                    )
             }
+            .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), 
+                      value: viewModel.animationAmount)
             
             // Status Message
-            if viewModel.currentStatus == .found {
-                VStack(spacing: 8) {
-                    Text(viewModel.matchedTrack)
-                        .font(.headline)
-                    Text("by \(viewModel.matchedArtist)")
-                        .font(.subheadline)
-                    if !viewModel.matchedAlbum.isEmpty {
-                        Text("from \(viewModel.matchedAlbum)")
-                            .font(.subheadline)
-                    }
-                }
-                .foregroundStyle(viewModel.currentStatus.color)
-                .multilineTextAlignment(.center)
+            if let error = viewModel.errorMessage {
+                Text(error)
+                    .font(.headline)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
             } else {
                 Text(viewModel.currentStatus.message)
                     .font(.headline)
@@ -86,7 +77,7 @@ struct ListenView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(viewModel.buttonColor)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .cornerRadius(8)
             }
             .buttonStyle(.plain)
@@ -100,9 +91,9 @@ struct ListenView: View {
                     .multilineTextAlignment(.center)
             }
         }
-        .padding()
+        .padding(24)
         .frame(width: 300, height: 400)
-        .background(Color(.windowBackgroundColor))
+        .background(Color.black)
         .alert("Error", isPresented: $viewModel.showError) {
             Button("OK") {}
         } message: {
@@ -117,4 +108,5 @@ struct ListenView: View {
 #Preview {
     ListenView(isPresented: .constant(true))
         .environmentObject(AppState())
+        .preferredColorScheme(.dark)
 } 

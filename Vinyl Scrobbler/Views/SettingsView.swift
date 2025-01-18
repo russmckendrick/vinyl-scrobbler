@@ -19,7 +19,7 @@ struct SettingsView: View {
                 }
                 .tag("General")
         }
-        .padding()
+        .background(Color.black)
         .frame(width: 400, height: 400)
     }
     
@@ -40,32 +40,37 @@ private struct AccountView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text("Last.fm Account")
-                .font(.headline)
+                .font(.title3)
+                .fontWeight(.semibold)
             
             if appState.isAuthenticated {
                 if let user = appState.lastFMUser {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
                         // User avatar
                         if let imageUrl = user.image?.large {
                             AsyncImage(url: imageUrl) { image in
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(width: 80, height: 80)
+                                    .frame(width: 100, height: 100)
                                     .clipShape(Circle())
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    )
                             } placeholder: {
                                 Image(systemName: "person.circle.fill")
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(width: 80, height: 80)
-                                    .foregroundColor(.gray)
+                                    .frame(width: 100, height: 100)
+                                    .foregroundStyle(.secondary)
                             }
                         } else {
                             Image(systemName: "person.circle.fill")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 80, height: 80)
-                                .foregroundColor(.gray)
+                                .frame(width: 100, height: 100)
+                                .foregroundStyle(.secondary)
                         }
                         
                         // User info
@@ -76,21 +81,23 @@ private struct AccountView: View {
                         if let realName = user.realName, !realName.isEmpty {
                             Text(realName)
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         
                         Text("\(user.playcount) scrobbles")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         
                         let correctDate = Date(timeIntervalSince1970: 1116691571)
                         Text("Member since \(correctDate.formatted(.dateTime.day().month().year().locale(Locale(identifier: "en_US"))))")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         
                         Button("Sign Out") {
                             appState.signOut()
                         }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
                         .padding(.top, 8)
                     }
                 } else {
@@ -101,35 +108,43 @@ private struct AccountView: View {
                 // Authentication form
                 if let error = errorMessage {
                     Text(error)
-                        .foregroundColor(.red)
+                        .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 12) {
                     TextField("Username", text: $username)
-                        .textFieldStyle(.roundedBorder)
+                        .textFieldStyle(.plain)
+                        .padding(10)
+                        .background(Color(.darkGray).opacity(0.3))
+                        .cornerRadius(8)
                     
                     SecureField("Password", text: $password)
-                        .textFieldStyle(.roundedBorder)
+                        .textFieldStyle(.plain)
+                        .padding(10)
+                        .background(Color(.darkGray).opacity(0.3))
+                        .cornerRadius(8)
                 }
                 .frame(width: 250)
                 
                 Button("Sign In") {
                     authenticate()
                 }
+                .buttonStyle(.bordered)
+                .tint(.blue)
                 .keyboardShortcut(.defaultAction)
                 .disabled(username.isEmpty || password.isEmpty || isAuthenticating)
+                .padding(.top, 8)
                 
                 Link("Don't have an account? Sign up at Last.fm", destination: URL(string: "https://www.last.fm")!)
                     .font(.caption)
-                    .foregroundColor(.secondary)
-                    .underline()
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 8)
             }
         }
-        .padding()
+        .padding(24)
         .onAppear {
-            // Fetch user info when the view appears if authenticated
             if appState.isAuthenticated {
                 Task {
                     await appState.fetchUserInfo()
@@ -152,7 +167,6 @@ private struct AccountView: View {
                 await MainActor.run {
                     appState.isAuthenticated = true
                     appState.showLastFMAuth = false
-                    // Fetch user info after successful authentication
                     Task {
                         await appState.fetchUserInfo()
                     }
@@ -169,4 +183,5 @@ private struct AccountView: View {
 #Preview {
     SettingsView()
         .environmentObject(AppState())
+        .preferredColorScheme(.dark)
 } 
