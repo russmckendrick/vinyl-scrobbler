@@ -28,6 +28,22 @@ class AppState: ObservableObject {
     
     @AppStorage("blurArtwork") var blurArtwork: Bool = false
     @AppStorage("showNotifications") var showNotifications: Bool = true
+    @AppStorage("themeMode") var themeMode: ThemeMode = .system
+    
+    @Published private(set) var currentTheme: Theme.ThemeColors
+    private let theme: Theme
+    
+    enum ThemeMode: String, CaseIterable {
+        case light, dark, system
+        
+        var localizedName: String {
+            switch self {
+            case .light: return "Light"
+            case .dark: return "Dark"
+            case .system: return "System"
+            }
+        }
+    }
     
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
@@ -35,15 +51,59 @@ class AppState: ObservableObject {
     private var shouldScrobble = false
     
     init() {
+        // Load theme configuration
+        guard let url = Bundle.main.url(forResource: "ColorTheme", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let theme = try? JSONDecoder().decode(Theme.self, from: data) else {
+            fatalError("Failed to load theme configuration")
+        }
+        self.theme = theme
+        self.currentTheme = theme.themes.dark // Default to dark theme initially
+        
+        // Initialize other services
         self.lastFMService = LastFMService.shared
         self.discogsService = DiscogsService.shared
         self.discogsService.configure(with: self)
+        
+        // Setup theme observation
+        setupThemeObservation()
         checkLastFMAuth()
         
         // Request notification permission
         Task {
             try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         }
+    }
+    
+    private func setupThemeObservation() {
+        // Observe system appearance changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateThemeColors),
+            name: NSWindow.didChangeOcclusionStateNotification,
+            object: nil
+        )
+        
+        // Initial theme update
+        updateThemeColors()
+    }
+    
+    @objc private func updateThemeColors() {
+        let isDarkMode = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        
+        switch themeMode {
+        case .light:
+            currentTheme = theme.themes.light
+        case .dark:
+            currentTheme = theme.themes.dark
+        case .system:
+            currentTheme = isDarkMode ? theme.themes.dark : theme.themes.light
+        }
+    }
+    
+    func setThemeMode(_ mode: ThemeMode) {
+        themeMode = mode
+        updateThemeColors()
     }
     
     func togglePlayPause() {
