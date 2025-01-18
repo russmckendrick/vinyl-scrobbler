@@ -10,39 +10,38 @@ struct DurationView: View {
             // Progress bar
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    // Background track
+                    // Single waveform that changes color based on progress
                     WaveformView(points: wavePoints)
-                        .fill(appState.currentTheme.foreground.tertiary)
+                        .fill(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: appState.currentTheme.foreground.primary, location: 0),
+                                    .init(color: appState.currentTheme.foreground.primary, location: progress),
+                                    .init(color: appState.currentTheme.foreground.tertiary, location: progress),
+                                    .init(color: appState.currentTheme.foreground.tertiary, location: 1)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                         .frame(height: 24)
-                    
-                    // Progress
-                    WaveformView(points: wavePoints)
-                        .fill(appState.currentTheme.foreground.primary)
-                        .frame(width: geometry.size.width * progress, height: 24)
-                        .clipShape(Rectangle())
                 }
             }
             .frame(height: 24)
-            .onChange(of: appState.currentTrack?.title) { _, title in
-                if let title = title {
-                    generateWaveform(width: 100, title: title)
+            .onChange(of: appState.currentTrack) { _, track in
+                if let duration = track?.durationSeconds {
+                    generateWaveform(width: 100, duration: duration)
                 } else {
                     // Generate placeholder waveform when no track is loaded
-                    wavePoints = DynamicPlaceholderView.generatePlaceholderWaveform(
-                        width: 100,
-                        timeInterval: Date().timeIntervalSince1970
-                    )
+                    generateWaveform(width: 100, duration: 180) // Default 3 minutes
                 }
             }
             .onAppear {
-                if let title = appState.currentTrack?.title {
-                    generateWaveform(width: 100, title: title)
+                if let duration = appState.currentTrack?.durationSeconds {
+                    generateWaveform(width: 100, duration: duration)
                 } else {
                     // Generate placeholder waveform when no track is loaded
-                    wavePoints = DynamicPlaceholderView.generatePlaceholderWaveform(
-                        width: 100,
-                        timeInterval: Date().timeIntervalSince1970
-                    )
+                    generateWaveform(width: 100, duration: 180) // Default 3 minutes
                 }
             }
             
@@ -67,9 +66,10 @@ struct DurationView: View {
         return Double(appState.currentPlaybackSeconds) / Double(duration)
     }
     
-    private func generateWaveform(width: Int, title: String) {
-        // Create a hash from the track title
-        let titleData = Data(title.utf8)
+    private func generateWaveform(width: Int, duration: Int) {
+        // Create a hash from the duration
+        let durationString = String(duration)
+        let titleData = Data(durationString.utf8)
         let hash = SHA256.hash(data: titleData)
         let hashString = hash.compactMap { String(format: "%02x", $0) }.joined()
         
