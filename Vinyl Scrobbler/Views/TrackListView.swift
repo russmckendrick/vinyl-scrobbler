@@ -10,7 +10,7 @@ struct TrackListView: View {
             // Handle bar and track count
             HStack {
                 Capsule()
-                    .fill(.secondary.opacity(0.3))
+                    .fill(appState.currentTheme.foreground.secondary.opacity(0.3))
                     .frame(width: 36, height: 4)
                     .padding(.vertical, 8)
                 
@@ -19,7 +19,7 @@ struct TrackListView: View {
                 if !appState.tracks.isEmpty {
                     Text("\(appState.tracks.count) Tracks")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
                 }
             }
             .padding(.horizontal)
@@ -36,7 +36,7 @@ struct TrackListView: View {
                     LazyVStack(spacing: 0) {
                         ForEach(Array(appState.tracks.enumerated()), id: \.element.id) { index, track in
                             TrackRow(track: track, isPlaying: appState.currentTrack?.id == track.id)
-                                .background(index % 2 == 0 ? Color.black.opacity(0.3) : Color.clear)
+                                .background(index % 2 == 0 ? appState.currentTheme.background.secondary : Color.clear)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     appState.selectAndPlayTrack(track)
@@ -49,19 +49,20 @@ struct TrackListView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.black.opacity(0.4))
+                .fill(appState.currentTheme.background.primary.opacity(0.4))
                 .background(
                     Rectangle()
                         .fill(.ultraThinMaterial)
                         .opacity(0.3)
                 )
-                .shadow(color: .black.opacity(0.2), radius: 15, y: -8)
+                .shadow(color: appState.currentTheme.artwork.shadow, radius: 15, y: -8)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
 struct TrackRow: View {
+    @EnvironmentObject private var appState: AppState
     let track: Track
     let isPlaying: Bool
     
@@ -71,11 +72,11 @@ struct TrackRow: View {
             HStack(spacing: 4) {
                 if isPlaying {
                     Image(systemName: "play.fill")
-                        .foregroundColor(.white)
+                        .foregroundStyle(appState.currentTheme.foreground.primary)
                         .font(.caption)
                 } else {
                     Text(track.position)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundStyle(appState.currentTheme.foreground.primary.opacity(0.7))
                         .font(.caption.monospaced())
                 }
             }
@@ -84,7 +85,7 @@ struct TrackRow: View {
             // Track info
             VStack(alignment: .leading, spacing: 2) {
                 Text(track.title)
-                    .foregroundColor(isPlaying ? .white : .white.opacity(0.9))
+                    .foregroundStyle(isPlaying ? appState.currentTheme.foreground.primary : appState.currentTheme.foreground.primary.opacity(0.9))
                     .font(.callout)
                     .lineLimit(1)
             }
@@ -93,18 +94,19 @@ struct TrackRow: View {
             
             // Duration
             Text(track.duration ?? "--:--")
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundStyle(appState.currentTheme.foreground.primary.opacity(0.7))
                 .font(.caption.monospaced())
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(isPlaying ? Color.white.opacity(0.1) : Color.clear)
+        .background(isPlaying ? appState.currentTheme.foreground.primary.opacity(0.1) : Color.clear)
     }
 }
 
 #Preview {
-    TrackListView()
-        .environmentObject(AppState())
+    let previewState = AppState()
+    return TrackListView()
+        .environmentObject(previewState)
         .frame(maxWidth: 400)
-        .background(.black)
+        .background(previewState.currentTheme.background.primary)
 } 

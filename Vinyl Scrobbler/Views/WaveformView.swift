@@ -38,7 +38,8 @@ struct WaveformView: Shape {
 }
 
 #Preview {
-    WaveformView(points: [
+    let previewState = AppState()
+    return WaveformView(points: [
         CGPoint(x: 0, y: 0.5),
         CGPoint(x: 0.2, y: 0.3),
         CGPoint(x: 0.4, y: 0.7),
@@ -46,7 +47,7 @@ struct WaveformView: Shape {
         CGPoint(x: 0.8, y: 0.6),
         CGPoint(x: 1.0, y: 0.5)
     ])
-    .fill(.white)
+    .fill(previewState.currentTheme.foreground.primary)
     .frame(width: 400, height: 24)
-    .background(.black)
+    .background(previewState.currentTheme.background.primary)
 } 
