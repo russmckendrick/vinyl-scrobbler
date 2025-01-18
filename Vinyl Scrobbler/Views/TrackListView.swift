@@ -39,7 +39,7 @@ struct TrackListView: View {
                                 .background(index % 2 == 0 ? Color.black.opacity(0.3) : Color.clear)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    appState.currentTrackIndex = index
+                                    appState.selectAndPlayTrack(track)
                                 }
                         }
                     }

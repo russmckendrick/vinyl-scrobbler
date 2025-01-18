@@ -22,6 +22,9 @@ class AppState: ObservableObject {
     @Published var windowVisible = true  // Track actual window visibility
     @Published var currentRelease: DiscogsRelease?
     @Published var searchQuery: String = ""  // Add search query property
+    @Published var currentSeconds: Double = 0
+    @Published var duration: Double = 0
+    @Published var wavePhase: Double = 0
     
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
@@ -96,11 +99,13 @@ class AppState: ObservableObject {
         playbackTimer?.invalidate()
         playbackTimer = nil
         currentPlaybackSeconds = 0
+        currentSeconds = 0
         shouldScrobble = false
     }
     
     private func resetPlayback() {
         currentPlaybackSeconds = 0
+        currentSeconds = 0
         shouldScrobble = true
         print("🔄 Reset playback - Scrobbling enabled")
         if isPlaying {
@@ -111,6 +116,12 @@ class AppState: ObservableObject {
     
     private func updatePlayback() {
         currentPlaybackSeconds += 1
+        
+        // Update the current seconds for the progress bar
+        currentSeconds = Double(currentPlaybackSeconds)
+        if let track = currentTrack, let duration = track.durationSeconds {
+            self.duration = Double(duration)
+        }
         
         // Check for scrobbling threshold (50% of track or 4 minutes)
         if let track = currentTrack,
@@ -372,5 +383,18 @@ class AppState: ObservableObject {
         windowVisible.toggle()
         showPlayer = windowVisible
         print("🔄 Window visibility toggled: \(windowVisible ? "visible" : "hidden")")
+    }
+    
+    var progress: Double {
+        guard duration > 0 else { return 0 }
+        return currentSeconds / duration
+    }
+    
+    var canPlayPrevious: Bool {
+        currentTrackIndex > 0
+    }
+    
+    var canPlayNext: Bool {
+        currentTrackIndex < tracks.count - 1
     }
 } 

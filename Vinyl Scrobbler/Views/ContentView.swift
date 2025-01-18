@@ -25,11 +25,16 @@ struct ContentView: View {
                     
                     // Content area
                     VStack(spacing: 16) {
-                        TrackInfoView()
                         PlaybackControlsView()
+                            .padding(.top, 8)
+                        
+                        TrackInfoView()
+                        
+                        // Duration view will be moved to its own component
+                        DurationView()
+                            .padding(.bottom, 8)
                     }
                     .padding(.horizontal, 24)
-                    .padding(.vertical, 16)
                     .background(Color.black)
                     
                     Spacer(minLength: 0)
