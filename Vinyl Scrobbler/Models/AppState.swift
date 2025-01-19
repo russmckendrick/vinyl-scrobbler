@@ -22,6 +22,28 @@ class AppState: ObservableObject {
     @Published var windowVisible = true  // Track actual window visibility
     @Published var currentRelease: DiscogsRelease?
     @Published var searchQuery: String = ""  // Add search query property
+    @Published var currentSeconds: Double = 0
+    @Published var duration: Double = 0
+    @Published var wavePhase: Double = 0
+    
+    @AppStorage("blurArtwork") var blurArtwork: Bool = false
+    @AppStorage("showNotifications") var showNotifications: Bool = true
+    @AppStorage("themeMode") var themeMode: ThemeMode = .system
+    
+    @Published private(set) var currentTheme: Theme.ThemeColors
+    private let theme: Theme
+    
+    enum ThemeMode: String, CaseIterable {
+        case light, dark, system
+        
+        var localizedName: String {
+            switch self {
+            case .light: return "Light"
+            case .dark: return "Dark"
+            case .system: return "System"
+            }
+        }
+    }
     
     private let lastFMService: LastFMService
     private let discogsService: DiscogsService
@@ -29,15 +51,59 @@ class AppState: ObservableObject {
     private var shouldScrobble = false
     
     init() {
+        // Load theme configuration
+        guard let url = Bundle.main.url(forResource: "ColorTheme", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let theme = try? JSONDecoder().decode(Theme.self, from: data) else {
+            fatalError("Failed to load theme configuration")
+        }
+        self.theme = theme
+        self.currentTheme = theme.themes.dark // Default to dark theme initially
+        
+        // Initialize other services
         self.lastFMService = LastFMService.shared
         self.discogsService = DiscogsService.shared
         self.discogsService.configure(with: self)
+        
+        // Setup theme observation
+        setupThemeObservation()
         checkLastFMAuth()
         
         // Request notification permission
         Task {
             try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         }
+    }
+    
+    private func setupThemeObservation() {
+        // Observe system appearance changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateThemeColors),
+            name: NSWindow.didChangeOcclusionStateNotification,
+            object: nil
+        )
+        
+        // Initial theme update
+        updateThemeColors()
+    }
+    
+    @objc private func updateThemeColors() {
+        let isDarkMode = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        
+        switch themeMode {
+        case .light:
+            currentTheme = theme.themes.light
+        case .dark:
+            currentTheme = theme.themes.dark
+        case .system:
+            currentTheme = isDarkMode ? theme.themes.dark : theme.themes.light
+        }
+    }
+    
+    func setThemeMode(_ mode: ThemeMode) {
+        themeMode = mode
+        updateThemeColors()
     }
     
     func togglePlayPause() {
@@ -96,11 +162,13 @@ class AppState: ObservableObject {
         playbackTimer?.invalidate()
         playbackTimer = nil
         currentPlaybackSeconds = 0
+        currentSeconds = 0
         shouldScrobble = false
     }
     
     private func resetPlayback() {
         currentPlaybackSeconds = 0
+        currentSeconds = 0
         shouldScrobble = true
         print("🔄 Reset playback - Scrobbling enabled")
         if isPlaying {
@@ -111,6 +179,12 @@ class AppState: ObservableObject {
     
     private func updatePlayback() {
         currentPlaybackSeconds += 1
+        
+        // Update the current seconds for the progress bar
+        currentSeconds = Double(currentPlaybackSeconds)
+        if let track = currentTrack, let duration = track.durationSeconds {
+            self.duration = Double(duration)
+        }
         
         // Check for scrobbling threshold (50% of track or 4 minutes)
         if let track = currentTrack,
@@ -172,31 +246,15 @@ class AppState: ObservableObject {
     }
     
     private func scrobbleCurrentTrack() {
-        guard isAuthenticated, let track = currentTrack else { return }
+        guard let track = currentTrack else { return }
         
         Task {
             do {
-                print("📝 Scrobbling track: \(track.title)")
                 try await lastFMService.scrobbleTrack(track: track)
-                print("✅ Successfully scrobbled: \(track.title)")
-                
-                // Check if notifications are enabled
-                if UserDefaults.standard.bool(forKey: "enableNotifications") {
-                    let content = UNMutableNotificationContent()
-                    content.title = "Track Scrobbled"
-                    content.subtitle = track.title
-                    content.body = "\(track.artist) - \(track.album)"
-                    
-                    let request = UNNotificationRequest(
-                        identifier: UUID().uuidString,
-                        content: content,
-                        trigger: nil
-                    )
-                    
-                    try? await UNUserNotificationCenter.current().add(request)
-                }
+                print("✅ Scrobbled: \(track.title)")
+                sendScrobbleNotification(for: track)
             } catch {
-                print("❌ Failed to scrobble track: \(error.localizedDescription)")
+                print("❌ Scrobble failed: \(error.localizedDescription)")
             }
         }
     }
@@ -372,5 +430,37 @@ class AppState: ObservableObject {
         windowVisible.toggle()
         showPlayer = windowVisible
         print("🔄 Window visibility toggled: \(windowVisible ? "visible" : "hidden")")
+    }
+    
+    var progress: Double {
+        guard duration > 0 else { return 0 }
+        return currentSeconds / duration
+    }
+    
+    var canPlayPrevious: Bool {
+        currentTrackIndex > 0
+    }
+    
+    var canPlayNext: Bool {
+        currentTrackIndex < tracks.count - 1
+    }
+    
+    private func sendScrobbleNotification(for track: Track) {
+        guard showNotifications else { return }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Track Scrobbled"
+        content.body = "\(track.title) by \(track.artist)"
+        content.sound = .default
+        
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil
+        )
+        
+        Task {
+            try? await UNUserNotificationCenter.current().add(request)
+        }
     }
 } 

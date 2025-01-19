@@ -4,41 +4,56 @@ struct AlbumArtworkView: View {
     @EnvironmentObject private var appState: AppState
     
     var body: some View {
-        ZStack {
-            if let track = appState.currentTrack {
-                // Show album artwork if available
-                AsyncImage(url: track.artworkURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    // Show placeholder while loading
-                    Image(systemName: "music.note")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
+        GeometryReader { geometry in
+            if let track = appState.currentTrack,
+               let artworkURL = track.artworkURL {
+                AsyncImage(url: artworkURL) { phase in
+                    switch phase {
+                    case .empty:
+                        DynamicPlaceholderView()
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .transition(.opacity)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .blur(radius: appState.blurArtwork ? 20 : 0)
+                            .clipped()
+                            .overlay(
+                                LinearGradient(
+                                    colors: appState.currentTheme.artwork.overlay.gradient,
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .transition(.opacity)
+                    case .failure(_):
+                        DynamicPlaceholderView()
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .transition(.opacity)
+                    @unknown default:
+                        DynamicPlaceholderView()
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .transition(.opacity)
+                    }
                 }
             } else {
-                // Show empty state
-                VStack(spacing: 16) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 60))
-                    Text("No Album Loaded")
-                }
-                .foregroundColor(.secondary)
+                DynamicPlaceholderView()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .transition(.opacity)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.windowBackgroundColor))
-        .cornerRadius(8)
+        .ignoresSafeArea(.all, edges: [.top, .leading, .trailing])
+        .animation(.easeInOut, value: appState.currentTrack?.artworkURL)
+        .animation(.easeInOut, value: appState.blurArtwork)
     }
 }
 
-// MARK: - Preview
-struct AlbumArtworkView_Previews: PreviewProvider {
-    static var previews: some View {
-        AlbumArtworkView()
-            .environmentObject(AppState())
-            .frame(height: 400)
-            .padding()
-    }
+#Preview {
+    let previewState = AppState()
+    return AlbumArtworkView()
+        .environmentObject(previewState)
+        .frame(width: 400, height: 400)
+        .background(previewState.currentTheme.background.primary)
 } 

@@ -5,101 +5,149 @@ struct ContentView: View {
     @Environment(\.dismissSearch) private var dismissSearch
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Album artwork view
-            AlbumArtworkView()
-                .frame(height: 300)
-            
-            // Track info
-            TrackInfoView()
-            
-            // Playback controls
-            PlaybackControlsView()
-            
-            // Track list
-            TrackListView()
-                .frame(maxHeight: .infinity)
+        GeometryReader { geometry in
+            ZStack {
+                // Base background
+                appState.currentTheme.background.primary
+                    .opacity(0.95)
+                    .ignoresSafeArea()
+                
+                // Main content container
+                VStack(spacing: 0) {
+                    // Album artwork view with overlaid track list
+                    ZStack(alignment: .bottom) {
+                        AlbumArtworkView()
+                            .frame(width: geometry.size.width, height: geometry.size.width)
+                        
+                        TrackListView()
+                            .padding(.horizontal)
+                    }
+                    
+                    // Content area
+                    VStack(spacing: 0) {
+                        // Track info section with flexible spacing
+                        Spacer()
+                        TrackInfoView()
+                        Spacer()
+                        
+                        // Bottom section with controls and duration
+                        VStack(spacing: 16) {
+                            // Playback controls
+                            PlaybackControlsView()
+                                .padding(.horizontal, 40) // More horizontal spacing for controls
+                            
+                            // Duration view
+                            DurationView()
+                                .padding(.bottom, 16)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .background(appState.currentTheme.background.primary)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
+            )
         }
-        .padding(20)
         .frame(minWidth: 500, minHeight: 800)
-        .sheet(isPresented: $appState.showDiscogsSearch, onDismiss: {
-            print("Discogs search dismissed")
-        }) {
+        // Sheets with consistent styling
+        .sheet(isPresented: $appState.showDiscogsSearch) {
             DiscogsSearchView()
                 .frame(width: 600, height: 400)
-                .background(Color(.windowBackgroundColor))
+                .background(appState.currentTheme.background.overlay)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showDiscogsSearch = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
                 }
         }
-        .sheet(isPresented: $appState.showLastFMAuth, onDismiss: {
-            print("LastFM auth dismissed")
-        }) {
+        .sheet(isPresented: $appState.showLastFMAuth) {
             LastFMAuthView()
                 .frame(width: 400, height: 300)
+                .background(appState.currentTheme.background.overlay)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showLastFMAuth = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
                 }
         }
-        .sheet(isPresented: $appState.showAbout, onDismiss: {
-            print("About dismissed")
-        }) {
+        .sheet(isPresented: $appState.showAbout) {
             AboutView()
                 .frame(width: 360, height: 600)
+                .background(appState.currentTheme.background.overlay)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showAbout = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
                 }
         }
-        .sheet(isPresented: $appState.showSettings, onDismiss: {
-            print("Settings dismissed")
-        }) {
+        .sheet(isPresented: $appState.showSettings) {
             SettingsView()
                 .frame(width: 400, height: 400)
-                .background(Color(.windowBackgroundColor))
+                .background(appState.currentTheme.background.overlay)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showSettings = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
                 }
         }
-        .sheet(isPresented: $appState.showListen, onDismiss: {
-            print("Listen dismissed")
-        }) {
+        .sheet(isPresented: $appState.showListen) {
             ListenView(isPresented: $appState.showListen)
                 .frame(width: 300, height: 500)
-                .background(Color(.windowBackgroundColor))
+                .background(appState.currentTheme.background.overlay)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(appState.currentTheme.border.primary, lineWidth: 0.5)
+                )
                 .overlay(alignment: .topTrailing) {
                     Button {
                         appState.showListen = false
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
@@ -108,10 +156,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Preview
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-            .environmentObject(AppState())
-    }
+#Preview {
+    ContentView()
+        .environmentObject(AppState())
 } 

@@ -15,6 +15,7 @@ struct DiscogsSearchView: View {
             Text("Load Album")
                 .font(.title2)
                 .fontWeight(.semibold)
+                .foregroundStyle(appState.currentTheme.foreground.primary)
             
             // Search bar
             SearchBar(text: $input) {
@@ -24,6 +25,7 @@ struct DiscogsSearchView: View {
             if isLoading {
                 ProgressView()
                     .controlSize(.small)
+                    .tint(appState.currentTheme.accent.primary)
             } else if viewModel.showResults {
                 // Search results
                 ScrollView(.vertical, showsIndicators: true) {
@@ -37,14 +39,16 @@ struct DiscogsSearchView: View {
                         }
                     }
                 }
+                .scrollContentBackground(.hidden)
             } else {
                 Text("Enter a Discogs release ID, URL, or search for an album")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(appState.currentTheme.foreground.secondary)
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
+        .background(appState.currentTheme.background.primary)
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) { }
         } message: {
