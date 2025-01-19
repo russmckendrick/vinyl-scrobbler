@@ -107,6 +107,11 @@ class AppState: ObservableObject {
     }
     
     func togglePlayPause() {
+        guard isAuthenticated else {
+            showLastFMAuth = true
+            return
+        }
+        
         isPlaying.toggle()
         if isPlaying {
             startPlayback()
@@ -117,6 +122,11 @@ class AppState: ObservableObject {
     }
     
     func previousTrack() {
+        guard isAuthenticated else {
+            showLastFMAuth = true
+            return
+        }
+        
         guard currentTrackIndex > 0 else { return }
         // Sort tracks by position before finding the previous track
         let sortedTracks = tracks.sorted { $0.position < $1.position }
@@ -133,6 +143,11 @@ class AppState: ObservableObject {
     }
     
     func nextTrack() {
+        guard isAuthenticated else {
+            showLastFMAuth = true
+            return
+        }
+        
         guard currentTrackIndex < tracks.count - 1 else { return }
         // Sort tracks by position before finding the next track
         let sortedTracks = tracks.sorted { $0.position < $1.position }
@@ -286,10 +301,26 @@ class AppState: ObservableObject {
     }
     
     func signOut() {
+        // First clear all sheets
+        showSettings = false
+        showLastFMAuth = false
+        showDiscogsSearch = false
+        showAbout = false
+        showListen = false
+        
+        // Then clear the session
         lastFMService.clearSession()
+        
+        // Finally update the authentication state
         isAuthenticated = false
-        showLastFMAuth = true
         lastFMUser = nil
+        
+        // Reset any playback state
+        currentTrack = nil
+        tracks = []
+        isPlaying = false
+        currentPlaybackSeconds = 0
+        currentTrackIndex = 0
     }
     
     #if DEBUG
@@ -326,6 +357,11 @@ class AppState: ObservableObject {
     
     // Update this method to handle track selection
     func selectAndPlayTrack(_ track: Track) {
+        guard isAuthenticated else {
+            showLastFMAuth = true
+            return
+        }
+        
         currentTrack = track
         updateCurrentTrackIndex(for: track)
         resetPlayback()
@@ -393,6 +429,11 @@ class AppState: ObservableObject {
     }
     
     func loadRelease(_ release: DiscogsRelease) {
+        guard isAuthenticated else {
+            showLastFMAuth = true
+            return
+        }
+        
         // Clear existing tracks
         tracks.removeAll()
         

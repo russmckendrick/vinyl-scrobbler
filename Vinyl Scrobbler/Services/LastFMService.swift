@@ -352,47 +352,47 @@ class LastFMService {
         let unixtime: String
     }
     
+    public func getRegistrationTimestamp(username: String) async throws -> Int {
+        guard let apiKey = SecureConfig.lastFMAPIKey else {
+            throw LastFMError.missingApiKey
+        }
+        
+        var components = URLComponents(string: "https://ws.audioscrobbler.com/2.0/")
+        components?.queryItems = [
+            URLQueryItem(name: "method", value: "user.getInfo"),
+            URLQueryItem(name: "user", value: username),
+            URLQueryItem(name: "api_key", value: apiKey),
+            URLQueryItem(name: "format", value: "json")
+        ]
+        
+        guard let url = components?.url else {
+            throw LastFMError.invalidURL
+        }
+        
+        let (data, _) = try await session.data(from: url)
+        let decoder = JSONDecoder()
+        let response = try decoder.decode(LastFMUserResponse.self, from: data)
+        
+        guard let timestamp = Int(response.user.registered.unixtime) else {
+            throw LastFMError.invalidResponse
+        }
+        
+        logger.debug("📅 Registration timestamp for \(username): \(timestamp)")
+        return timestamp
+    }
+    
     public func getUserInfo() async throws -> SBKUser {
         guard let manager = manager else {
             throw LastFMError.configurationMissing
         }
         
         do {
-            // Get the raw timestamp first
-            guard let apiKey = SecureConfig.lastFMAPIKey else {
-                throw LastFMError.missingApiKey
-            }
-            
-            var components = URLComponents(string: "https://ws.audioscrobbler.com/2.0/")
-            components?.queryItems = [
-                URLQueryItem(name: "method", value: "user.getInfo"),
-                URLQueryItem(name: "user", value: "RussMckendrick"),
-                URLQueryItem(name: "api_key", value: apiKey),
-                URLQueryItem(name: "format", value: "json")
-            ]
-            
-            guard let url = components?.url else {
-                throw LastFMError.invalidURL
-            }
-            
-            let (data, _) = try await session.data(from: url)
-            
-            // Log the raw timestamp for debugging
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let user = json["user"] as? [String: Any],
-               let registered = user["registered"] as? [String: Any],
-               let unixtime = registered["unixtime"] as? String {
-                logger.debug("🕒 Raw Registration Timestamp from Last.fm: \(unixtime)")
-                if let timestamp = Int(unixtime) {
-                    let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-                    logger.debug("📅 Converted Registration Date: \(date)")
-                }
-            }
-            
-            // Use ScrobbleKit's manager to get the user info
+            // Use ScrobbleKit's manager to get the authenticated user info
             logger.debug("🔍 Fetching user information from Last.fm")
-            let user = try await manager.getInfo(forUser: "RussMckendrick")
+            let user = try await manager.getInfo()
             logger.info("✅ Successfully fetched user info for: \(user.username)")
+            
+            // Log the registration date from ScrobbleKit for debugging
             logger.debug("""
                 👤 User Info Debug:
                 Username: \(user.username)
@@ -403,6 +403,7 @@ class LastFMService {
                 """)
             
             return user
+            
         } catch {
             logger.error("❌ Failed to fetch user info: \(error.localizedDescription)")
             throw error

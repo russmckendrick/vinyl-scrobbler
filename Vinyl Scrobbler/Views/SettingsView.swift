@@ -75,6 +75,7 @@ private struct AccountView: View {
     @State private var password = ""
     @State private var isAuthenticating = false
     @State private var errorMessage: String?
+    @State private var registrationDate: Date?
     
     private let lastFMService = LastFMService.shared
     
@@ -131,10 +132,17 @@ private struct AccountView: View {
                             .font(.caption)
                             .foregroundStyle(appState.currentTheme.foreground.secondary)
                         
-                        let correctDate = Date(timeIntervalSince1970: 1116691571)
-                        Text("Member since \(correctDate.formatted(.dateTime.day().month().year().locale(Locale(identifier: "en_US"))))")
+                        Text("Member since \((registrationDate ?? user.memberSince).formatted(.dateTime.day().month().year().locale(Locale(identifier: "en_US"))))")
                             .font(.caption)
                             .foregroundStyle(appState.currentTheme.foreground.secondary)
+                            .task {
+                                do {
+                                    let timestamp = try await lastFMService.getRegistrationTimestamp(username: user.username)
+                                    registrationDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
+                                } catch {
+                                    print("Failed to get registration date: \(error)")
+                                }
+                            }
                         
                         Button {
                             appState.signOut()
