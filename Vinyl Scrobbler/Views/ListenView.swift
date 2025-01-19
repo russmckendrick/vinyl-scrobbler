@@ -24,7 +24,7 @@ struct ListenView: View {
             ZStack {
                 // Outer pulse circle
                 Circle()
-                    .fill(viewModel.currentStatus.color.opacity(0.1))
+                    .fill(viewModel.currentStatus.color.opacity(0.2))
                     .frame(width: 160, height: 160)
                     .scaleEffect(viewModel.animationAmount)
                 
@@ -58,6 +58,27 @@ struct ListenView: View {
                     .font(.headline)
                     .foregroundStyle(viewModel.currentStatus.color)
                     .multilineTextAlignment(.center)
+            }
+            
+            // Show matched track info when found
+            if viewModel.currentStatus == .found {
+                VStack(spacing: 8) {
+                    Text(viewModel.matchedTrack)
+                        .font(.headline)
+                        .foregroundStyle(appState.currentTheme.foreground.primary)
+                        .multilineTextAlignment(.center)
+                    Text(viewModel.matchedArtist)
+                        .font(.subheadline)
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
+                        .multilineTextAlignment(.center)
+                    if !viewModel.matchedAlbum.isEmpty {
+                        Text(viewModel.matchedAlbum)
+                            .font(.subheadline)
+                            .foregroundStyle(appState.currentTheme.foreground.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(.vertical, 8)
             }
             
             Spacer()
@@ -95,11 +116,6 @@ struct ListenView: View {
         .padding(24)
         .frame(width: 300, height: 400)
         .background(appState.currentTheme.background.primary)
-        .alert("Error", isPresented: $viewModel.showError) {
-            Button("OK") {}
-        } message: {
-            Text(viewModel.errorMessage ?? "An unknown error occurred")
-        }
         .onAppear {
             viewModel.setAppState(appState)
         }
