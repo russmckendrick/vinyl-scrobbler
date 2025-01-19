@@ -5,6 +5,22 @@ struct DynamicPlaceholderView: View {
     @State private var gradientColors: [Color] = []
     @State private var previousColors: [Color] = []
     
+    // Curated colors from the app icon
+    private static let curatedColors: [Color] = [
+        Color(red: 0.95, green: 0.4, blue: 0.3),   // Warm Red
+        Color(red: 1.0, green: 0.5, blue: 0.2),    // Orange
+        Color(red: 1.0, green: 0.65, blue: 0.3),   // Light Orange
+        Color(red: 0.95, green: 0.75, blue: 0.4),  // Peach
+        Color(red: 0.98, green: 0.45, blue: 0.25), // Bright Orange
+        Color(red: 0.92, green: 0.35, blue: 0.2),  // Deep Orange
+        Color(red: 0.85, green: 0.3, blue: 0.2),   // Burnt Orange
+        Color(red: 0.8, green: 0.3, blue: 0.4),    // Dark Pink
+        Color(red: 0.9, green: 0.4, blue: 0.5),    // Medium Pink
+        Color(red: 0.7, green: 0.25, blue: 0.3),   // Deep Red
+        Color(red: 0.6, green: 0.2, blue: 0.25),   // Burgundy
+        Color(red: 0.85, green: 0.35, blue: 0.25)  // Coral Red
+    ]
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -22,10 +38,19 @@ struct DynamicPlaceholderView: View {
                     endPoint: .bottom
                 )
                 
-                // Vinyl icon overlay
-                Image(systemName: "opticaldisc.fill")
-                    .font(.system(size: geometry.size.width * 0.3))
-                    .foregroundStyle(appState.currentTheme.foreground.primary.opacity(0.15))
+                // Text overlay
+                VStack(spacing: 8) {
+                    Text("No Album")
+                        .font(.system(size: geometry.size.width * 0.12, weight: .bold))
+                        .foregroundStyle(appState.currentTheme.foreground.primary.opacity(0.1))
+                    Text("Loaded")
+                        .font(.system(size: geometry.size.width * 0.12, weight: .bold))
+                        .foregroundStyle(appState.currentTheme.foreground.primary.opacity(0.1))
+                    Text("•••")
+                        .font(.system(size: geometry.size.width * 0.12, weight: .bold))
+                        .foregroundStyle(appState.currentTheme.foreground.primary.opacity(0.05))
+                }
+                .multilineTextAlignment(.center)
             }
         }
         .aspectRatio(1, contentMode: .fill)
@@ -47,36 +72,20 @@ struct DynamicPlaceholderView: View {
     
     private func generateNextColors() -> [Color] {
         let now = Date()
-        let calendar = Calendar.current
         let nanoseconds = Int(now.timeIntervalSince1970.truncatingRemainder(dividingBy: 1) * 1_000_000_000)
         
-        // Get all time components
-        let hour = calendar.component(.hour, from: now)
-        let minute = calendar.component(.minute, from: now)
-        let second = calendar.component(.second, from: now)
-        let millisecond = nanoseconds / 1_000_000
+        // Use time to create a deterministic but seemingly random selection
+        var generator = SeededRandomNumberGenerator(seed: UInt64(nanoseconds))
         
-        // Create a hash from all time components
-        let timeString = String(format: "%02d%02d%02d%03d", hour, minute, second, millisecond)
-        let hash = timeString.hash
+        // Select 3 different colors from our curated set
+        var selectedIndices = Set<Int>()
+        while selectedIndices.count < 3 {
+            let index = Int.random(in: 0..<DynamicPlaceholderView.curatedColors.count, using: &generator)
+            selectedIndices.insert(index)
+        }
         
-        // Use the hash to generate base hues with smaller variations from previous colors
-        let baseHue = abs(Double(hash % 1000) / 1000.0)
-        let offsetHue1 = abs(Double((hash >> 10) % 1000) / 1000.0)
-        let offsetHue2 = abs(Double((hash >> 20) % 1000) / 1000.0)
-        
-        // Create new colors with subtle variations
-        return [
-            Color(hue: baseHue, 
-                  saturation: 0.7 + (Double(millisecond) / 10000.0), 
-                  brightness: 0.8),
-            Color(hue: offsetHue1, 
-                  saturation: 0.6 + (Double(second) / 240.0), 
-                  brightness: 0.7),
-            Color(hue: offsetHue2, 
-                  saturation: 0.7, 
-                  brightness: 0.6 + (Double(minute) / 240.0))
-        ]
+        // Convert to array and map to colors
+        return selectedIndices.map { DynamicPlaceholderView.curatedColors[$0] }
     }
     
     private func updateColors() {
