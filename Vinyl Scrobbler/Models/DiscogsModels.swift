@@ -38,6 +38,8 @@ struct DiscogsRelease: Codable {
         let title: String
         /// Length of the track in a formatted string (optional)
         let duration: String?
+        /// Type of the track entry (e.g., "track", "heading", "index")
+        let type: String?
     }
     
     /// Represents an image associated with the release

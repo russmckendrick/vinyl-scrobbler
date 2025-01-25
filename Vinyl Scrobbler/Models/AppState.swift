@@ -443,6 +443,12 @@ class AppState: ObservableObject {
         var newTracks: [Track] = []
         
         for track in release.tracklist {
+            // Skip entries that are side titles (have no position)
+            guard !track.position.isEmpty else {
+                print("⚠️ Skipping side title: \(track.title)")
+                continue
+            }
+            
             var duration = track.duration
             var artworkURL: URL? = nil
             
@@ -503,6 +509,12 @@ class AppState: ObservableObject {
         tracks.removeAll()
         
         for track in release.tracklist {
+            // Skip entries that are side titles (have no position)
+            guard !track.position.isEmpty else {
+                print("⚠️ Skipping side title: \(track.title)")
+                continue
+            }
+            
             let newTrack = Track(
                 position: track.position,
                 title: track.title,

@@ -369,7 +369,22 @@ class DiscogsService {
         }
         
         // Process tracks
+        logger.info("🔍 Starting track processing - Total tracks in release: \(release.tracklist.count)")
         for (index, trackInfo) in release.tracklist.enumerated() {
+            logger.info("""
+                📝 Examining track \(index + 1):
+                - Title: \(trackInfo.title)
+                - Position: '\(trackInfo.position)'
+                - Type: \(trackInfo.type ?? "nil")
+                - Duration: \(trackInfo.duration ?? "nil")
+                """)
+            
+            // Skip entries that are side titles (have no position and type is "heading" or empty)
+            if trackInfo.position.isEmpty {
+                logger.info("⚠️ Skipping track '\(trackInfo.title)' - Empty position")
+                continue
+            }
+            
             let initialDuration = trackInfo.duration?.isEmpty ?? true ? nil : trackInfo.duration
             let lastFmDuration = lastFmAlbumInfo?.tracks.indices.contains(index) == true ? lastFmAlbumInfo?.tracks[index].duration : nil
             
@@ -386,8 +401,8 @@ class DiscogsService {
             )
             
             let isDefaultDuration = finalDuration == "3:00"
-            logger.debug("""
-                Added track:
+            logger.info("""
+                ✅ Added track:
                 - Position: \(track.position)
                 - Title: \(track.title)
                 - Duration: \(track.duration ?? "3:00")\(isDefaultDuration ? " (default)" : "")
@@ -397,7 +412,7 @@ class DiscogsService {
             tracks.append(track)
         }
         
-        logger.info("✅ Processed \(tracks.count) tracks from release")
+        logger.info("✨ Finished processing - Added \(tracks.count) tracks")
         return tracks
     }
 }
