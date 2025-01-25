@@ -1,15 +1,31 @@
 import Foundation
 import OSLog
 
+/// A service class responsible for interacting with the Discogs API
+/// Provides functionality for searching releases and retrieving detailed album information
+/// Implements MainActor to ensure all UI updates happen on the main thread
 @MainActor
 class DiscogsService {
+    /// Shared singleton instance of the DiscogsService
     static let shared = DiscogsService()
+    
+    /// Logger instance for tracking API interactions and debugging
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "DiscogsService")
+    
+    /// URLSession instance configured with Discogs API headers
     private let session: URLSession
+    
+    /// JSON decoder configured for Discogs API response format
     private let decoder: JSONDecoder
+    
+    /// User agent string identifying the app to Discogs API
     private let userAgent = "VinylScrobbler/1.0 +https://www.vinyl-scrobbler.app/"
+    
+    /// Reference to the app's state for updating UI-related information
     private var appState: AppState?
     
+    /// Private initializer to enforce singleton pattern
+    /// Sets up URLSession with required headers and configures JSON decoder
     private init() {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
@@ -22,11 +38,18 @@ class DiscogsService {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
     }
     
+    /// Configures the service with a reference to the app's state
+    /// - Parameter appState: The app's state manager instance
     func configure(with appState: AppState) {
         self.appState = appState
     }
     
     // MARK: - API Methods
+    
+    /// Fetches detailed information about a specific release from Discogs
+    /// - Parameter id: The Discogs release ID to fetch
+    /// - Returns: A DiscogsRelease object containing the release details
+    /// - Throws: DiscogsError if the request fails or response is invalid
     func loadRelease(_ id: Int) async throws -> DiscogsRelease {
         let url = URL(string: "https://api.discogs.com/releases/\(id)")!
         
@@ -94,50 +117,71 @@ class DiscogsService {
     }
     
     // MARK: - Search Parameters
+    
+    /// Structure defining the parameters available for searching Discogs releases
+    /// Includes functionality for cleaning and formatting search terms
     struct SearchParameters {
+        /// The main search query
         let query: String
+        /// The type of item to search for (default: "release")
         var type: String = "release"
+        /// The title to search for
         var title: String?
+        /// The specific release title to search for
         var releaseTitle: String?
+        /// The artist name to search for
         var artist: String?
+        /// The record label to search for
         var label: String?
+        /// The genre to filter by
         var genre: String?
+        /// The style to filter by
         var style: String?
+        /// The country of release to filter by
         var country: String?
+        /// The release year to filter by
         var year: String?
+        /// The format to filter by (e.g., "Vinyl", "CD")
         var format: String?
+        /// The catalog number to search for
         var catno: String?
+        /// The barcode to search for
         var barcode: String?
+        /// A specific track to search for
         var track: String?
+        /// The page number for pagination (default: 1)
         var page: Int = 1
         
-        // Clean up the query and title fields
+        /// Returns a cleaned version of the search query
+        /// Combines artist and title information when available
         var cleanedQuery: String {
             if let artist = artist, let title = title {
-                // If we have both artist and title, create a cleaned combined query
                 return "\(artist) - \(Self.cleanupTitle(title))"
             } else if let artist = artist, let releaseTitle = releaseTitle {
-                // If we have both artist and releaseTitle, create a cleaned combined query
                 return "\(artist) - \(Self.cleanupTitle(releaseTitle))"
             } else {
-                // Otherwise just clean the raw query
                 return Self.cleanupTitle(query)
             }
         }
         
+        /// Returns a cleaned version of the title
         var cleanedTitle: String? {
             title.map(Self.cleanupTitle)
         }
         
+        /// Returns a cleaned version of the release title
         var cleanedReleaseTitle: String? {
             releaseTitle.map(Self.cleanupTitle)
         }
         
+        /// Returns a cleaned version of the artist name
         var cleanedArtist: String? {
             artist.map(Self.cleanupTitle)
         }
         
-        // Title cleanup function
+        /// Removes common suffixes and extra information from titles
+        /// - Parameter title: The title to clean
+        /// - Returns: A cleaned version of the title
         private static func cleanupTitle(_ title: String) -> String {
             // Common suffixes to remove
             let suffixesToRemove = [
@@ -171,11 +215,14 @@ class DiscogsService {
                 ) ?? cleanTitle
             }
             
-            // Trim any remaining whitespace
             return cleanTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         }
     }
     
+    /// Searches for releases on Discogs using the provided search parameters
+    /// - Parameter parameters: The search parameters to use
+    /// - Returns: A DiscogsSearchResponse containing the search results
+    /// - Throws: DiscogsError if the search fails
     func searchReleases(_ parameters: SearchParameters) async throws -> DiscogsSearchResponse {
         var components = URLComponents(string: "https://api.discogs.com/database/search")!
         var queryItems = [
@@ -184,7 +231,7 @@ class DiscogsService {
             URLQueryItem(name: "page", value: String(parameters.page))
         ]
         
-        // Add optional parameters if they exist, using cleaned versions for titles
+        // Add optional parameters if they exist
         if let title = parameters.cleanedTitle {
             queryItems.append(URLQueryItem(name: "title", value: title))
         }
@@ -250,12 +297,21 @@ class DiscogsService {
         }
     }
     
-    // Convenience method for simple searches
+    /// Convenience method for performing a simple search with just a query string
+    /// - Parameters:
+    ///   - query: The search query
+    ///   - page: The page number (default: 1)
+    /// - Returns: A DiscogsSearchResponse containing the search results
     func searchReleases(_ query: String, page: Int = 1) async throws -> DiscogsSearchResponse {
         let parameters = SearchParameters(query: query, page: page)
         return try await searchReleases(parameters)
     }
     
+    /// Extracts a Discogs release ID from various input formats
+    /// Supports direct IDs, [r123456] format, and Discogs URLs
+    /// - Parameter input: The input string to parse
+    /// - Returns: The extracted release ID
+    /// - Throws: DiscogsError if the input format is invalid
     func extractReleaseId(from input: String) async throws -> Int {
         // First try to parse as a direct ID
         if let id = Int(input) {
@@ -290,6 +346,10 @@ class DiscogsService {
         throw DiscogsError.invalidInput("Could not find release ID in URL")
     }
     
+    /// Creates Track objects from a Discogs release
+    /// Attempts to enhance track information with Last.fm data
+    /// - Parameter release: The DiscogsRelease to process
+    /// - Returns: An array of Track objects
     private func createTracks(from release: DiscogsRelease) async throws -> [Track] {
         var tracks: [Track] = []
         logger.info("🎼 Processing Discogs release: \(release.title)")
@@ -343,16 +403,27 @@ class DiscogsService {
 }
 
 // MARK: - Error Handling
+
+/// Enumeration of possible errors that can occur when interacting with the Discogs API
 enum DiscogsError: LocalizedError {
+    /// Invalid input format for release ID or URL
     case invalidInput(String)
+    /// Invalid URL construction for API request
     case invalidURL
+    /// Invalid response type from API
     case invalidResponse
+    /// HTTP error with status code
     case httpError(Int)
+    /// Error decoding API response
     case decodingError(Error)
+    /// Missing Discogs API token
     case missingToken
+    /// Requested release not found
     case releaseNotFound
+    /// Network or connection error
     case connectionError(String)
     
+    /// Human-readable description of the error
     var errorDescription: String? {
         switch self {
         case .invalidInput(let message):

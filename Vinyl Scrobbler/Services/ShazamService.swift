@@ -1,3 +1,5 @@
+/// ShazamService: A service that provides music recognition functionality using ShazamKit.
+/// This service manages audio capture, Shazam matching, and result processing for vinyl record identification.
 import Foundation
 import ShazamKit
 import OSLog
@@ -5,6 +7,7 @@ import AVFAudio
 import AppKit
 
 // MARK: - Error Handling
+/// Comprehensive error types for the Shazam service operations
 enum ShazamError: LocalizedError {
     case microphoneAccessDenied
     case recordingFailed
@@ -35,16 +38,26 @@ enum ShazamError: LocalizedError {
 }
 
 // MARK: - Match Result
+/// Represents a processed match result from Shazam, enriched with additional metadata from Last.fm
 struct ShazamMatchResult {
     private static let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "ShazamMatchResult")
     
+    /// The cleaned-up title of the matched track
     let title: String
+    /// The artist name of the matched track
     let artist: String
+    /// The album name, either from Last.fm or fallback to track title
     let album: String
+    /// List of genres associated with the track
     let genres: [String]
+    /// Optional URL to the track on Apple Music
     let appleMusicURL: URL?
+    /// Optional URL to the track's artwork
     let artworkURL: URL?
     
+    /// Initializes a new ShazamMatchResult from a Shazam match
+    /// - Parameter match: The raw match from ShazamKit
+    /// - Throws: Error if processing the match fails
     init(from match: SHMatch) async throws {
         let rawTitle = match.mediaItems.first?.title ?? ""
         let rawArtist = match.mediaItems.first?.artist ?? ""
@@ -82,7 +95,8 @@ struct ShazamMatchResult {
         Self.logger.debug("\(debugMessage)")
     }
     
-    // Helper method to create Discogs search parameters
+    /// Creates search parameters for Discogs based on the match result
+    /// - Returns: Structured search parameters for the Discogs service
     func createDiscogsSearchParameters() -> DiscogsService.SearchParameters {
         DiscogsService.SearchParameters(
             query: "",  // We'll let the struct build this from artist and title
@@ -91,6 +105,9 @@ struct ShazamMatchResult {
         )
     }
     
+    /// Removes common suffixes and variations from track titles
+    /// - Parameter title: The raw title from Shazam
+    /// - Returns: A cleaned version of the title without remaster/edition suffixes
     private static func cleanupTitle(_ title: String) -> String {
         // Common suffixes to remove
         let suffixesToRemove = [
@@ -130,22 +147,31 @@ struct ShazamMatchResult {
 }
 
 // MARK: - Shazam Service
+/// Main service class that handles Shazam integration and audio capture
+/// Implements SHSessionDelegate to receive match results from ShazamKit
 @MainActor
 class ShazamService: NSObject, SHSessionDelegate {
+    /// Shared instance for singleton access
     static let shared = ShazamService()
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "ShazamService")
     
+    /// The Shazam session for music recognition
     private var session: SHSession?
+    /// Audio engine for capturing input from the microphone
     private var audioEngine: AVAudioEngine?
+    /// Flag indicating whether the service is currently listening for matches
     private var isListening: Bool = false
     
+    /// Callback handler for match results
     private var matchHandler: ((Result<ShazamMatchResult, Error>) -> Void)?
     
+    /// Private initializer for singleton pattern
     private override init() {
         super.init()
         setupSession()
     }
     
+    /// Sets up the Shazam session and assigns the delegate
     private func setupSession() {
         session = SHSession()
         session?.delegate = self
@@ -153,6 +179,8 @@ class ShazamService: NSObject, SHSessionDelegate {
     }
     
     // MARK: - Audio Recording
+    /// Configures the audio engine for microphone capture
+    /// - Throws: ShazamError if setup fails
     private func setupAudioEngine() throws {
         logger.info("Setting up audio engine...")
         
@@ -204,6 +232,8 @@ class ShazamService: NSObject, SHSessionDelegate {
         }
     }
     
+    /// Checks and requests microphone permission if needed
+    /// - Throws: ShazamError if permission is denied
     private func checkMicrophonePermission() async throws {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
@@ -226,6 +256,8 @@ class ShazamService: NSObject, SHSessionDelegate {
     }
     
     // MARK: - Public Interface
+    /// Starts listening for audio to match
+    /// - Throws: Error if microphone access is denied or setup fails
     func startListening() async throws {
         guard !isListening else {
             logger.debug("Already listening, ignoring start request")
@@ -246,6 +278,7 @@ class ShazamService: NSObject, SHSessionDelegate {
         }
     }
     
+    /// Stops listening and cleans up audio resources
     func stopListening() {
         guard isListening else { return }
         
@@ -257,6 +290,10 @@ class ShazamService: NSObject, SHSessionDelegate {
     }
     
     // MARK: - SHSessionDelegate
+    /// Called when Shazam finds a match for the current audio
+    /// - Parameters:
+    ///   - session: The Shazam session
+    ///   - match: The found match
     nonisolated func session(_ session: SHSession, didFind match: SHMatch) {
         Task { @MainActor in
             guard !match.mediaItems.isEmpty else {
@@ -276,6 +313,11 @@ class ShazamService: NSObject, SHSessionDelegate {
         }
     }
     
+    /// Called when Shazam fails to find a match
+    /// - Parameters:
+    ///   - session: The Shazam session
+    ///   - signature: The audio signature that failed to match
+    ///   - error: Optional error describing why the match failed
     nonisolated func session(_ session: SHSession, didNotFindMatchFor signature: SHSignature, error: Error?) {
         Task { @MainActor in
             if let error = error {
@@ -289,6 +331,9 @@ class ShazamService: NSObject, SHSessionDelegate {
     }
     
     // MARK: - Match Handling
+    /// Listens for a single match and returns the result
+    /// - Returns: A processed ShazamMatchResult
+    /// - Throws: Error if matching fails
     func listenForMatch() async throws -> ShazamMatchResult {
         try await startListening()
         
@@ -307,7 +352,10 @@ class ShazamService: NSObject, SHSessionDelegate {
 }
 
 // MARK: - AVAudioPCMBuffer Extension
+/// Extension to calculate audio levels from PCM buffer
 extension AVAudioPCMBuffer {
+    /// Calculates the root mean square (RMS) of the audio buffer
+    /// - Returns: The RMS value as a Float
     func rms() -> Float {
         guard let channelData = self.floatChannelData else { return 0 }
         let channelDataValue = channelData.pointee
@@ -318,4 +366,4 @@ extension AVAudioPCMBuffer {
         let mean = sum / Float(self.frameLength)
         return sqrt(mean)
     }
-} 
+}
