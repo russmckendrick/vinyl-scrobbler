@@ -1,9 +1,17 @@
+/// DiscogsResultRow: A SwiftUI view component that displays a single Discogs search result
+/// in a consistent, visually appealing row format. This component is designed to be used
+/// in a list of search results from the Discogs API.
 import SwiftUI
 
+/// A view that represents a single row in the Discogs search results list
 struct DiscogsResultRow: View {
+    /// The search result data to display
     let result: DiscogsSearchResponse.SearchResult
+    /// The global app state for accessing theme and other shared data
     @EnvironmentObject private var appState: AppState
     
+    /// Formats the release details into a human-readable string
+    /// Combines year, formats, and country information with bullet point separators
     private var formattedDetails: String {
         var details: [String] = []
         if let year = result.year {
@@ -24,7 +32,7 @@ struct DiscogsResultRow: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Thumbnail
+            // Thumbnail image with fallback to music note icon
             AsyncImage(url: URL(string: result.thumb ?? "")) { image in
                 image
                     .resizable()
@@ -38,13 +46,15 @@ struct DiscogsResultRow: View {
             .cornerRadius(4)
             .background(appState.currentTheme.background.secondary.opacity(0.1))
             
-            // Text content
+            // Release information stack
             VStack(alignment: .leading, spacing: 4) {
+                // Release title
                 Text(result.title)
                     .font(.headline)
                     .foregroundStyle(appState.currentTheme.foreground.primary)
                     .lineLimit(1)
                 
+                // Release details (year, format, country)
                 Text(formattedDetails)
                     .font(.subheadline)
                     .foregroundStyle(appState.currentTheme.foreground.secondary)
@@ -53,6 +63,7 @@ struct DiscogsResultRow: View {
             
             Spacer()
             
+            // Navigation indicator
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundStyle(appState.currentTheme.foreground.secondary)
@@ -64,8 +75,10 @@ struct DiscogsResultRow: View {
     }
 }
 
+/// SwiftUI preview provider showing sample Discogs search results
 #Preview {
     VStack {
+        // Preview with thumbnail
         DiscogsResultRow(
             result: DiscogsSearchResponse.SearchResult(
                 id: 1234567,
@@ -78,6 +91,7 @@ struct DiscogsResultRow: View {
                 country: "UK"
             )
         )
+        // Preview without thumbnail
         DiscogsResultRow(
             result: DiscogsSearchResponse.SearchResult(
                 id: 1234568,
@@ -94,4 +108,4 @@ struct DiscogsResultRow: View {
     .frame(width: 400)
     .padding()
     .environmentObject(AppState())
-} 
+}

@@ -1,38 +1,61 @@
+/// ListenViewModel: A view model that manages the music listening and recognition functionality.
+/// This class coordinates between ShazamKit for music recognition, Last.fm for metadata,
+/// and Discogs for vinyl record lookup.
 import Foundation
 import SwiftUI
 import OSLog
 
+/// Main view model for the listening feature that handles music recognition and search coordination
 @MainActor
 class ListenViewModel: ObservableObject {
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "ListenViewModel")
     
     // MARK: - Published Properties
+    /// Indicates if the app is currently listening for music
     @Published var isListening = false
+    /// Indicates if a search operation is in progress
     @Published var isSearching = false
+    /// Stores error messages for display
     @Published var errorMessage: String?
+    /// Controls the visibility of error messages
     @Published var showError = false
+    /// Current status of the listening process
     @Published var currentStatus: ListeningStatus = .idle
+    /// Controls the pulse animation amount
     @Published var animationAmount = 1.0
+    /// The title of the matched track
     @Published var matchedTrack = ""
+    /// The artist name of the matched track
     @Published var matchedArtist = ""
+    /// The album name of the matched track
     @Published var matchedAlbum = ""
+    /// Controls the presentation of the listen view
     @Published var isPresented: Bool
     
     // MARK: - Services
+    /// Service for music recognition using ShazamKit
     private let shazamService = ShazamService.shared
+    /// Service for fetching additional track metadata from Last.fm
     private let lastFMService = LastFMService.shared
+    /// Service for searching vinyl records on Discogs
     private let discogsService = DiscogsService.shared
+    /// Reference to the global app state
     private var appState: AppState?
     
+    /// Initializes the view model with a presentation binding
+    /// - Parameter isPresented: Binding to control the view's presentation
     init(isPresented: Binding<Bool>) {
         self._isPresented = Published(initialValue: isPresented.wrappedValue)
     }
     
+    /// Sets the app state reference
+    /// - Parameter state: The global app state
     func setAppState(_ state: AppState) {
         self.appState = state
     }
     
     // MARK: - Computed Properties
+    /// Returns the appropriate button title based on the current status
     var buttonTitle: String {
         switch currentStatus {
         case .found:
@@ -44,6 +67,7 @@ class ListenViewModel: ObservableObject {
         }
     }
     
+    /// Returns the appropriate button color based on the current status
     var buttonColor: Color {
         switch currentStatus {
         case .found:
@@ -56,6 +80,7 @@ class ListenViewModel: ObservableObject {
     }
     
     // MARK: - Status Management
+    /// Represents the various states of the listening process
     enum ListeningStatus {
         case idle
         case listening
@@ -64,6 +89,7 @@ class ListenViewModel: ObservableObject {
         case found
         case error
         
+        /// User-friendly message for each status
         var message: String {
             switch self {
             case .idle:
@@ -81,6 +107,7 @@ class ListenViewModel: ObservableObject {
             }
         }
         
+        /// System image name for each status
         var systemImage: String {
             switch self {
             case .idle:
@@ -98,6 +125,7 @@ class ListenViewModel: ObservableObject {
             }
         }
         
+        /// Color associated with each status
         var color: Color {
             switch self {
             case .idle:
@@ -117,6 +145,8 @@ class ListenViewModel: ObservableObject {
     }
     
     // MARK: - Public Methods
+    /// Starts the music recognition process
+    /// This method coordinates between Shazam for recognition and Last.fm for metadata
     func startListening() async {
         do {
             withAnimation {
@@ -155,6 +185,8 @@ class ListenViewModel: ObservableObject {
         }
     }
     
+    /// Initiates a Discogs search for the matched track
+    /// This method transitions from the listening view to the Discogs search view
     func searchDiscogs() {
         // Set up the search query
         let searchQuery = "\(matchedArtist) - \(matchedAlbum)"
@@ -174,6 +206,7 @@ class ListenViewModel: ObservableObject {
         }
     }
     
+    /// Stops the music recognition process and resets the UI
     func stopListening() {
         withAnimation {
             shazamService.stopListening()
@@ -184,6 +217,8 @@ class ListenViewModel: ObservableObject {
     }
     
     // MARK: - Private Methods
+    /// Handles errors that occur during the listening process
+    /// - Parameter error: The error that occurred
     private func handleError(_ error: Error) {
         withAnimation {
             isListening = false
@@ -208,15 +243,17 @@ class ListenViewModel: ObservableObject {
         }
     }
     
+    /// Starts the pulse animation for the listening indicator
     private func startPulseAnimation() {
         withAnimation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
             animationAmount = 1.2
         }
     }
     
+    /// Stops the pulse animation
     private func stopPulseAnimation() {
         withAnimation {
             animationAmount = 1.0
         }
     }
-} 
+}

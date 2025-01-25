@@ -1,19 +1,35 @@
+/// DiscogsSearchViewModel: A view model that manages the search functionality for Discogs releases.
+/// This class handles searching for vinyl releases, processing search results, and managing the UI state
+/// for the search interface.
 import SwiftUI
 import OSLog
 
+/// Main view model for Discogs search functionality
 @MainActor
 class DiscogsSearchViewModel: ObservableObject {
+    /// Array of search results from Discogs
     @Published var results: [DiscogsSearchResponse.SearchResult] = []
+    /// Loading state indicator for search operations
     @Published var isLoading = false
+    /// Current search text input
     @Published var searchText = ""
+    /// Flag to control the visibility of search results
     @Published var showResults = false
+    /// Error message to display when search operations fail
     @Published var errorMessage: String?
     
+    /// Logger instance for debugging and error tracking
     private let logger = Logger(subsystem: "com.vinyl.scrobbler", category: "DiscogsSearchViewModel")
+    /// Shared instance of the Discogs service for API interactions
     private let discogsService = DiscogsService.shared
+    /// Shared instance of the Last.fm service for additional metadata
     private let lastFMService = LastFMService.shared
+    /// Reference to the global app state
     var appState: AppState?
     
+    /// Loads a release by its ID or URL
+    /// - Parameter input: A string containing either a release ID in [r123456] format or a Discogs URL
+    /// - Throws: Error if the release cannot be loaded or the ID cannot be extracted
     func loadReleaseById(_ input: String) async throws {
         // Check for [r123456] format
         if input.hasPrefix("[r") && input.hasSuffix("]") {
@@ -33,6 +49,12 @@ class DiscogsSearchViewModel: ObservableObject {
         await appState?.createTracks(from: release)
     }
     
+    /// Performs a search for vinyl releases on Discogs
+    /// - Parameter query: The search query string
+    /// - Throws: Error if the search operation fails
+    /// This method supports two search formats:
+    /// 1. Artist - Album format (e.g., "The Beatles - Abbey Road")
+    /// 2. General search terms
     func search(query: String) async throws {
         guard !query.isEmpty else { return }
         
@@ -67,6 +89,9 @@ class DiscogsSearchViewModel: ObservableObject {
         filterAndUpdateResults(response)
     }
     
+    /// Filters and updates the search results to show only vinyl releases
+    /// - Parameter response: The raw search response from Discogs
+    /// This method filters results to include only vinyl, LP, or 12" formats
     private func filterAndUpdateResults(_ response: DiscogsSearchResponse) {
         // Filter results to only include vinyl releases
         results = response.results.filter { result in
@@ -81,10 +106,14 @@ class DiscogsSearchViewModel: ObservableObject {
         showResults = true
     }
     
+    /// Handles the selection of a specific release from the search results
+    /// - Parameter result: The selected search result
+    /// - Throws: Error if the release cannot be loaded or processed
+    /// This method loads the full release details and creates tracks in the app state
     func selectRelease(_ result: DiscogsSearchResponse.SearchResult) async throws {
         guard let appState = appState else { return }
         
         let release = try await discogsService.loadRelease(result.id)
         await appState.createTracks(from: release)
     }
-} 
+}
