@@ -1,6 +1,11 @@
+/// GeneralSettingsView: A SwiftUI view that provides user-configurable settings
+/// for the application's general behavior and appearance. This includes notification
+/// preferences, theme selection, and visual effect options.
 import SwiftUI
 
+/// Custom modifier for segmented picker styling that applies theme-aware colors
 struct CustomSegmentedPickerStyle: ViewModifier {
+    /// Access to the global app state for theming
     @EnvironmentObject private var appState: AppState
     
     func body(content: Content) -> some View {
@@ -10,13 +15,17 @@ struct CustomSegmentedPickerStyle: ViewModifier {
     }
 }
 
+/// Main view for general application settings
 struct GeneralSettingsView: View {
+    /// Access to the global app state for preferences and theming
     @EnvironmentObject private var appState: AppState
     
     var body: some View {
         Form {
+            // MARK: - Notifications Section
             Section {
                 VStack(spacing: 0) {
+                    // Notification toggle with description
                     Toggle(isOn: $appState.showNotifications) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Show Notifications")
@@ -41,11 +50,14 @@ struct GeneralSettingsView: View {
             .listRowBackground(appState.currentTheme.background.primary)
             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
             
+            // MARK: - Appearance Section
             Section {
                 VStack(spacing: 16) {
+                    // Theme selection picker
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Theme")
                             .foregroundStyle(appState.currentTheme.foreground.primary)
+                        // Themed segmented picker for light/dark mode
                         Picker("Theme", selection: Binding(
                             get: { appState.themeMode },
                             set: { appState.setThemeMode($0) }
@@ -60,6 +72,7 @@ struct GeneralSettingsView: View {
                     .background(appState.currentTheme.background.tertiary)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     
+                    // Artwork blur effect toggle
                     Toggle(isOn: $appState.blurArtwork) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Blur Artwork")
@@ -84,6 +97,7 @@ struct GeneralSettingsView: View {
             .listRowBackground(appState.currentTheme.background.primary)
             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
         }
+        // Form styling and theme application
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .background(appState.currentTheme.background.primary)
@@ -91,7 +105,8 @@ struct GeneralSettingsView: View {
     }
 }
 
+/// Preview provider for GeneralSettingsView
 #Preview {
     GeneralSettingsView()
         .environmentObject(AppState())
-} 
+}
