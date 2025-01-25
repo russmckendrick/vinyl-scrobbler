@@ -1,11 +1,19 @@
+/// DynamicPlaceholderView: A SwiftUI view that provides an animated placeholder
+/// when no album artwork is available. It creates a smooth, animated gradient background
+/// using curated colors from the app's design palette and displays placeholder text.
 import SwiftUI
 
+/// A view that displays an animated gradient placeholder with text overlay
 struct DynamicPlaceholderView: View {
+    /// Access to the global app state for theming
     @EnvironmentObject private var appState: AppState
+    /// Current colors used in the gradient animation
     @State private var gradientColors: [Color] = []
+    /// Previous colors used for smooth transitions
     @State private var previousColors: [Color] = []
     
-    // Curated colors from the app icon
+    /// Carefully selected colors that complement the app's design
+    /// Colors are chosen to create warm, engaging gradients that match the app icon's palette
     private static let curatedColors: [Color] = [
         Color(red: 0.95, green: 0.4, blue: 0.3),   // Warm Red
         Color(red: 1.0, green: 0.5, blue: 0.2),    // Orange
@@ -24,21 +32,21 @@ struct DynamicPlaceholderView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Dynamic gradient background
+                // Animated background gradient using selected colors
                 LinearGradient(
                     colors: gradientColors,
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 
-                // Gradient overlay for player transition
+                // Theme-aware overlay gradient for visual consistency
                 LinearGradient(
                     colors: appState.currentTheme.artwork.overlay.gradient,
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 
-                // Text overlay
+                // Placeholder text with responsive sizing
                 VStack(spacing: 8) {
                     Text("No Album")
                         .font(.system(size: geometry.size.width * 0.12, weight: .bold))
@@ -55,11 +63,11 @@ struct DynamicPlaceholderView: View {
         }
         .aspectRatio(1, contentMode: .fill)
         .onAppear {
-            // Initialize with first colors
+            // Initialize the gradient colors
             updateColors()
             previousColors = gradientColors
             
-            // Start timer to update colors very slowly
+            // Set up periodic color transitions
             Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
                 let nextColors = generateNextColors()
                 withAnimation(.easeInOut(duration: 8)) {
@@ -70,38 +78,47 @@ struct DynamicPlaceholderView: View {
         }
     }
     
+    /// Generates the next set of colors for the gradient animation
+    /// Uses current time to create a deterministic but varied selection
+    /// - Returns: Array of three colors selected from the curated palette
     private func generateNextColors() -> [Color] {
         let now = Date()
         let nanoseconds = Int(now.timeIntervalSince1970.truncatingRemainder(dividingBy: 1) * 1_000_000_000)
         
-        // Use time to create a deterministic but seemingly random selection
+        // Create deterministic selection based on current time
         var generator = SeededRandomNumberGenerator(seed: UInt64(nanoseconds))
         
-        // Select 3 different colors from our curated set
+        // Select three unique colors from the palette
         var selectedIndices = Set<Int>()
         while selectedIndices.count < 3 {
             let index = Int.random(in: 0..<DynamicPlaceholderView.curatedColors.count, using: &generator)
             selectedIndices.insert(index)
         }
         
-        // Convert to array and map to colors
+        // Map indices to actual colors
         return selectedIndices.map { DynamicPlaceholderView.curatedColors[$0] }
     }
     
+    /// Updates the current gradient colors with a new selection
     private func updateColors() {
         gradientColors = generateNextColors()
     }
     
-    // Helper function to generate placeholder waveform points
+    /// Generates a deterministic waveform pattern for placeholder states
+    /// - Parameters:
+    ///   - width: Number of segments in the waveform
+    ///   - timeInterval: Time value used to seed the pattern generation
+    /// - Returns: Array of points defining the waveform shape
     static func generatePlaceholderWaveform(width: Int, timeInterval: TimeInterval) -> [CGPoint] {
         var points: [CGPoint] = []
         let segments = width
         
-        // Use more precise time components for the seed
+        // Create precise time-based seed
         let milliseconds = Int((timeInterval.truncatingRemainder(dividingBy: 1)) * 1000)
         let seed = UInt64(timeInterval) * 1000 + UInt64(milliseconds)
         var generator = SeededRandomNumberGenerator(seed: seed)
         
+        // Generate smooth, connected points
         var lastY = Double.random(in: 0.3...0.7, using: &generator)
         points.append(CGPoint(x: 0, y: lastY))
         
@@ -120,10 +137,11 @@ struct DynamicPlaceholderView: View {
     }
 }
 
+/// Preview provider for DynamicPlaceholderView
 #Preview {
     let previewState = AppState()
     return DynamicPlaceholderView()
         .environmentObject(previewState)
         .frame(width: 400, height: 400)
         .background(previewState.currentTheme.background.primary)
-} 
+}
