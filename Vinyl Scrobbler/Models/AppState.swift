@@ -438,67 +438,6 @@ class AppState: ObservableObject {
         updateNowPlaying()
     }
     
-    /// Creates tracks from a Discogs release, including Last.fm metadata
-    public func createTracks(from release: DiscogsRelease) async {
-        var newTracks: [Track] = []
-        
-        for track in release.tracklist {
-            // Skip entries that are side titles (have no position)
-            guard !track.position.isEmpty else {
-                print("⚠️ Skipping side title: \(track.title)")
-                continue
-            }
-            
-            var duration = track.duration
-            var artworkURL: URL? = nil
-            
-            do {
-                let albumInfo = try await LastFMService.shared.getAlbumInfo(artist: release.artists.first?.name ?? "", album: release.title)
-                if let images = albumInfo.images {
-                    if let extraLargeImage = images.first(where: { $0.size == "extralarge" }) {
-                        artworkURL = URL(string: extraLargeImage.url)
-                    } else if let largeImage = images.first(where: { $0.size == "large" }) {
-                        artworkURL = URL(string: largeImage.url)
-                    }
-                }
-                
-                if let lastFmTrack = albumInfo.tracks.first(where: { $0.name == track.title }),
-                   let durationStr = lastFmTrack.duration,
-                   let durationSeconds = Int(durationStr) {
-                    let minutes = durationSeconds / 60
-                    let seconds = durationSeconds % 60
-                    duration = String(format: "%d:%02d", minutes, seconds)
-                }
-            } catch {
-                print("Failed to get album info from Last.fm: \(error.localizedDescription)")
-            }
-            
-            if duration == nil || duration?.isEmpty == true {
-                duration = "3:00"
-            }
-            
-            if artworkURL == nil {
-                artworkURL = URL(string: release.images?.first?.uri ?? "")
-            }
-            
-            let newTrack = Track(
-                position: track.position,
-                title: track.title,
-                duration: duration,
-                artist: release.artists.first?.name ?? "",
-                album: release.title,
-                artworkURL: artworkURL
-            )
-            newTracks.append(newTrack)
-        }
-        
-        tracks = newTracks
-        if !tracks.isEmpty {
-            currentTrackIndex = 0
-            currentTrack = tracks[currentTrackIndex]
-        }
-    }
-    
     /// Loads a Discogs release into the player
     func loadRelease(_ release: DiscogsRelease) {
         guard isAuthenticated else {
@@ -506,26 +445,49 @@ class AppState: ObservableObject {
             return
         }
         
+        print("🎵 Starting to load release: \(release.title)")
         tracks.removeAll()
         
-        for track in release.tracklist {
+        for trackInfo in release.tracklist {
             // Skip entries that are side titles (have no position)
-            guard !track.position.isEmpty else {
-                print("⚠️ Skipping side title: \(track.title)")
+            guard !trackInfo.position.isEmpty else {
+                print("⚠️ Skipping side title: \(trackInfo.title)")
                 continue
             }
             
-            let newTrack = Track(
-                position: track.position,
-                title: track.title,
-                duration: track.duration?.isEmpty ?? true ? "3:00" : track.duration,
+            print("📝 Processing track: \(trackInfo.title) (Position: \(trackInfo.position))")
+            
+            // Step 1: Check Discogs duration
+            var finalDuration: String? = nil
+            if let discogsTrackDuration = trackInfo.duration, !discogsTrackDuration.isEmpty {
+                print("✅ Found Discogs duration for '\(trackInfo.title)': \(discogsTrackDuration)")
+                finalDuration = discogsTrackDuration
+            } else {
+                print("ℹ️ No Discogs duration for '\(trackInfo.title)', will use default 3:00")
+                finalDuration = "3:00"
+            }
+            
+            let track = Track(
+                position: trackInfo.position,
+                title: trackInfo.title,
+                duration: finalDuration,
                 artist: release.artists.first?.name ?? "",
                 album: release.title,
-                artworkURL: release.images?.first.map { URL(string: $0.uri) } ?? nil
+                artworkURL: nil  // We'll set this later when we get LastFM data
             )
-            tracks.append(newTrack)
+            
+            print("""
+                ✅ Added track:
+                   Position: \(track.position)
+                   Title: \(track.title)
+                   Duration: \(track.duration ?? "3:00")
+                   Artist: \(track.artist)
+                """)
+            
+            tracks.append(track)
         }
         
+        // Sort tracks and setup initial state
         tracks.sort { $0.position < $1.position }
         
         if let firstTrack = tracks.first {
@@ -538,6 +500,83 @@ class AppState: ObservableObject {
         shouldScrobble = true
         
         print("✅ Loaded release: \(release.title) with \(tracks.count) tracks")
+        
+        // After initial load, try to fetch Last.fm durations
+        Task {
+            await updateTracksWithLastFMDurations(release: release)
+        }
+    }
+    
+    /// Updates track durations with Last.fm data after initial load
+    private func updateTracksWithLastFMDurations(release: DiscogsRelease) async {
+        guard let artist = release.artists.first?.name else { return }
+        
+        print("🔄 Fetching Last.fm durations for \(release.title)")
+        
+        do {
+            let lastFmAlbumInfo = try await LastFMService.shared.getAlbumInfo(
+                artist: artist,
+                album: release.title
+            )
+            print("✅ Got Last.fm album info with \(lastFmAlbumInfo.tracks.count) tracks")
+            
+            // Get the best quality LastFM artwork URL
+            var artworkURL: URL? = nil
+            if let images = lastFmAlbumInfo.images {
+                if let extraLargeImage = images.first(where: { $0.size == "extralarge" }),
+                   let url = URL(string: extraLargeImage.url) {
+                    artworkURL = url
+                    print("✅ Using Last.fm extra large artwork")
+                } else if let largeImage = images.first(where: { $0.size == "large" }),
+                          let url = URL(string: largeImage.url) {
+                    artworkURL = url
+                    print("✅ Using Last.fm large artwork")
+                }
+            }
+            
+            // Fallback to Discogs artwork if no LastFM artwork found
+            if artworkURL == nil, 
+               let firstImage = release.images?.first,
+               let url = URL(string: firstImage.uri) {
+                artworkURL = url
+                print("ℹ️ No Last.fm artwork found, using Discogs artwork")
+            }
+            
+            // Update existing tracks with Last.fm durations and artwork
+            for (index, track) in tracks.enumerated() {
+                if let matchingLastFmTrack = lastFmAlbumInfo.tracks.first(where: { $0.name.lowercased() == track.title.lowercased() }) {
+                    if let duration = matchingLastFmTrack.duration {
+                        tracks[index] = Track(
+                            position: track.position,
+                            title: track.title,
+                            duration: duration,
+                            artist: track.artist,
+                            album: track.album,
+                            artworkURL: artworkURL
+                        )
+                        print("✅ Updated duration for '\(track.title)' with Last.fm duration: \(duration)")
+                    }
+                } else {
+                    // Update artwork even if no duration match found
+                    tracks[index] = Track(
+                        position: track.position,
+                        title: track.title,
+                        duration: track.duration,
+                        artist: track.artist,
+                        album: track.album,
+                        artworkURL: artworkURL
+                    )
+                }
+            }
+            
+            // Update current track if needed
+            if let currentIndex = tracks.firstIndex(where: { $0.position == currentTrack?.position }) {
+                currentTrack = tracks[currentIndex]
+            }
+            
+        } catch {
+            print("❌ Failed to get Last.fm album info: \(error.localizedDescription)")
+        }
     }
     
     /// Toggles the visibility of the main window

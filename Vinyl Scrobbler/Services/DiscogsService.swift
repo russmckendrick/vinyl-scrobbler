@@ -385,11 +385,33 @@ class DiscogsService {
                 continue
             }
             
-            let initialDuration = trackInfo.duration?.isEmpty ?? true ? nil : trackInfo.duration
-            let lastFmDuration = lastFmAlbumInfo?.tracks.indices.contains(index) == true ? lastFmAlbumInfo?.tracks[index].duration : nil
+            // Step 1: Try to get duration from Discogs
+            var finalDuration: String? = nil
+            if let discogsTrackDuration = trackInfo.duration, !discogsTrackDuration.isEmpty {
+                logger.info("✅ Using Discogs duration: \(discogsTrackDuration)")
+                finalDuration = discogsTrackDuration
+            }
             
-            // Use Discogs duration if available, otherwise use Last.fm duration, finally fallback to "3:00"
-            let finalDuration = initialDuration ?? lastFmDuration ?? "3:00"
+            // Step 2: If no Discogs duration, try to find matching track in Last.fm data
+            if finalDuration == nil, let lastFmAlbumInfo = lastFmAlbumInfo {
+                // Try to find matching track by title
+                if let matchingLastFmTrack = lastFmAlbumInfo.tracks.first(where: { $0.name.lowercased() == trackInfo.title.lowercased() }) {
+                    finalDuration = matchingLastFmTrack.duration
+                    logger.info("✅ Found matching Last.fm duration: \(finalDuration ?? "nil")")
+                } else {
+                    // Fallback to index-based matching if titles don't match exactly
+                    if lastFmAlbumInfo.tracks.indices.contains(index) {
+                        finalDuration = lastFmAlbumInfo.tracks[index].duration
+                        logger.info("⚠️ Using Last.fm duration by track position: \(finalDuration ?? "nil")")
+                    }
+                }
+            }
+            
+            // Step 3: If still no duration, use default
+            if finalDuration == nil {
+                finalDuration = "3:00"
+                logger.info("⚠️ No duration found, using default: 3:00")
+            }
             
             let track = Track(
                 position: trackInfo.position,
@@ -400,12 +422,11 @@ class DiscogsService {
                 artworkURL: nil
             )
             
-            let isDefaultDuration = finalDuration == "3:00"
             logger.info("""
                 ✅ Added track:
                 - Position: \(track.position)
                 - Title: \(track.title)
-                - Duration: \(track.duration ?? "3:00")\(isDefaultDuration ? " (default)" : "")
+                - Duration: \(track.duration ?? "3:00") \(finalDuration == "3:00" ? "(default)" : "")
                 - Artist: \(track.artist)
                 """)
             

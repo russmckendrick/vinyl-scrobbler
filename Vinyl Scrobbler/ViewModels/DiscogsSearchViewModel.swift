@@ -27,26 +27,42 @@ class DiscogsSearchViewModel: ObservableObject {
     /// Reference to the global app state
     var appState: AppState?
     
-    /// Loads a release by its ID or URL
-    /// - Parameter input: A string containing either a release ID in [r123456] format or a Discogs URL
-    /// - Throws: Error if the release cannot be loaded or the ID cannot be extracted
+    /// Loads a release by its ID
     func loadReleaseById(_ input: String) async throws {
-        // Check for [r123456] format
-        if input.hasPrefix("[r") && input.hasSuffix("]") {
-            let start = input.index(input.startIndex, offsetBy: 2)
-            let end = input.index(input.endIndex, offsetBy: -1)
-            let releaseId = String(input[start..<end])
-            if let id = Int(releaseId) {
-                let release = try await discogsService.loadRelease(id)
-                await appState?.createTracks(from: release)
-                return
-            }
-        }
+        guard let appState = appState else { return }
         
-        // Try regular ID extraction
+        // Extract release ID from input
         let releaseId = try await discogsService.extractReleaseId(from: input)
         let release = try await discogsService.loadRelease(releaseId)
-        await appState?.createTracks(from: release)
+        appState.currentRelease = release
+        appState.loadRelease(release)
+    }
+    
+    /// Loads a release from a search result
+    func loadRelease(_ result: DiscogsSearchResponse.SearchResult) async {
+        guard let appState = appState else { return }
+        
+        do {
+            let release = try await discogsService.loadRelease(result.id)
+            appState.currentRelease = release
+            appState.loadRelease(release)
+        } catch {
+            print("Failed to load release: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Loads a release from a URL
+    func loadReleaseFromURL(_ url: URL) async {
+        guard let appState = appState else { return }
+        
+        do {
+            let releaseId = try await discogsService.extractReleaseId(from: url.absoluteString)
+            let release = try await discogsService.loadRelease(releaseId)
+            appState.currentRelease = release
+            appState.loadRelease(release)
+        } catch {
+            print("Failed to load release from URL: \(error.localizedDescription)")
+        }
     }
     
     /// Performs a search for vinyl releases on Discogs
@@ -114,6 +130,6 @@ class DiscogsSearchViewModel: ObservableObject {
         guard let appState = appState else { return }
         
         let release = try await discogsService.loadRelease(result.id)
-        await appState.createTracks(from: release)
+        appState.loadRelease(release)
     }
 }
