@@ -313,6 +313,7 @@ class AppState: ObservableObject {
             do {
                 print("🎵 Updating Now Playing: \(track.title)")
                 try await lastFMService.updateNowPlaying(track: track)
+                sendNowPlayingNotification(for: track)
             } catch {
                 print("Failed to update Now Playing: \(error.localizedDescription)")
             }
@@ -327,7 +328,6 @@ class AppState: ObservableObject {
             do {
                 try await lastFMService.scrobbleTrack(track: track)
                 print("✅ Scrobbled: \(track.title)")
-                sendScrobbleNotification(for: track)
             } catch {
                 print("❌ Scrobble failed: \(error.localizedDescription)")
             }
@@ -606,14 +606,13 @@ class AppState: ObservableObject {
     
     // MARK: - Notifications
     
-    /// Sends a notification when a track is scrobbled
-    private func sendScrobbleNotification(for track: Track) {
+    /// Sends a notification when a track starts playing
+    private func sendNowPlayingNotification(for track: Track) {
         guard showNotifications else { return }
         
         let content = UNMutableNotificationContent()
-        content.title = "Track Scrobbled"
+        content.title = "Now Playing"
         content.body = "\(track.title) by \(track.artist)"
-        content.sound = .default
         
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
