@@ -3,39 +3,74 @@ import Combine
 import ScrobbleKit
 import UserNotifications
 
+/// Main state management class for the Vinyl Scrobbler application.
+/// Handles playback control, Last.fm integration, theme management, and UI state.
+/// This class is marked with @MainActor to ensure all UI updates happen on the main thread.
 @MainActor
 class AppState: ObservableObject {
+    // MARK: - Published Properties
+    
+    /// Currently selected track for playback
     @Published var currentTrack: Track?
+    /// List of tracks in the current album/release
     @Published var tracks: [Track] = []
+    /// Indicates if a track is currently playing
     @Published var isPlaying = false
+    /// Current playback position in seconds
     @Published var currentPlaybackSeconds = 0
+    /// Index of the current track in the tracks array
     @Published var currentTrackIndex = 0
+    /// Controls visibility of the Discogs search view
     @Published var showDiscogsSearch = false
+    /// Controls visibility of the about view
     @Published var showAbout = false
+    /// Controls visibility of the Last.fm authentication view
     @Published var showLastFMAuth = false
+    /// Controls visibility of the settings view
     @Published var showSettings = false
+    /// Controls visibility of the listen view
     @Published var showListen = false
+    /// Indicates if the user is authenticated with Last.fm
     @Published var isAuthenticated = false
+    /// Current Last.fm user information
     @Published var lastFMUser: SBKUser?
+    /// URI for the current Discogs release
     @Published var discogsURI: String?
+    /// Controls visibility of the player view
     @Published var showPlayer = true  // Start with the player visible
+    /// Tracks actual window visibility
     @Published var windowVisible = true  // Track actual window visibility
+    /// Currently selected Discogs release
     @Published var currentRelease: DiscogsRelease?
+    /// Current search query for Discogs
     @Published var searchQuery: String = ""  // Add search query property
+    /// Current playback position in seconds (as Double for smooth progress updates)
     @Published var currentSeconds: Double = 0
+    /// Duration of the current track in seconds
     @Published var duration: Double = 0
+    /// Phase value for wave animation
     @Published var wavePhase: Double = 0
     
+    // MARK: - App Storage Properties
+    
+    /// Controls whether artwork should be blurred
     @AppStorage("blurArtwork") var blurArtwork: Bool = false
+    /// Controls whether notifications should be shown
     @AppStorage("showNotifications") var showNotifications: Bool = true
+    /// Current theme mode setting
     @AppStorage("themeMode") var themeMode: ThemeMode = .system
     
+    /// Current theme colors based on selected theme mode
     @Published private(set) var currentTheme: Theme.ThemeColors
     private let theme: Theme
     
+    // MARK: - Theme Mode Enum
+    
+    /// Represents the available theme modes for the application
     enum ThemeMode: String, CaseIterable {
         case light, dark, system
         
+        /// Localized display name for each theme mode
         var localizedName: String {
             switch self {
             case .light: return "Light"
@@ -45,11 +80,20 @@ class AppState: ObservableObject {
         }
     }
     
+    // MARK: - Private Properties
+    
+    /// Service for interacting with Last.fm API
     private let lastFMService: LastFMService
+    /// Service for interacting with Discogs API
     private let discogsService: DiscogsService
+    /// Timer for tracking playback progress
     private var playbackTimer: Timer?
+    /// Flag to determine if the current track should be scrobbled
     private var shouldScrobble = false
     
+    // MARK: - Initialization
+    
+    /// Initializes the AppState with default values and required services
     init() {
         // Load theme configuration
         guard let url = Bundle.main.url(forResource: "ColorTheme", withExtension: "json"),
@@ -69,12 +113,15 @@ class AppState: ObservableObject {
         setupThemeObservation()
         checkLastFMAuth()
         
-        // Request notification permission
+        // Request notification permissions
         Task {
             try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         }
     }
     
+    // MARK: - Theme Management
+    
+    /// Sets up observation of system appearance changes
     private func setupThemeObservation() {
         // Observe system appearance changes
         NotificationCenter.default.addObserver(
@@ -88,6 +135,7 @@ class AppState: ObservableObject {
         updateThemeColors()
     }
     
+    /// Updates theme colors based on current theme mode and system appearance
     @objc private func updateThemeColors() {
         let isDarkMode = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         
@@ -101,11 +149,15 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Sets the theme mode and updates colors accordingly
     func setThemeMode(_ mode: ThemeMode) {
         themeMode = mode
         updateThemeColors()
     }
     
+    // MARK: - Playback Control
+    
+    /// Toggles play/pause state of the current track
     func togglePlayPause() {
         guard isAuthenticated else {
             showLastFMAuth = true
@@ -121,6 +173,7 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Moves to the previous track in the playlist
     func previousTrack() {
         guard isAuthenticated else {
             showLastFMAuth = true
@@ -142,6 +195,7 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Moves to the next track in the playlist
     func nextTrack() {
         guard isAuthenticated else {
             showLastFMAuth = true
@@ -163,6 +217,7 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Starts the playback timer and enables scrobbling
     private func startPlayback() {
         playbackTimer?.invalidate()
         shouldScrobble = true
@@ -173,6 +228,7 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Stops playback and resets playback state
     private func stopPlayback() {
         playbackTimer?.invalidate()
         playbackTimer = nil
@@ -181,6 +237,7 @@ class AppState: ObservableObject {
         shouldScrobble = false
     }
     
+    /// Resets playback state and restarts if currently playing
     private func resetPlayback() {
         currentPlaybackSeconds = 0
         currentSeconds = 0
@@ -192,11 +249,12 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Updates playback progress and handles scrobbling
     private func updatePlayback() {
         currentPlaybackSeconds += 1
-        
         // Update the current seconds for the progress bar
         currentSeconds = Double(currentPlaybackSeconds)
+        
         if let track = currentTrack, let duration = track.durationSeconds {
             self.duration = Double(duration)
         }
@@ -247,6 +305,7 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Updates the "Now Playing" status on Last.fm
     private func updateNowPlaying() {
         guard isAuthenticated, let track = currentTrack else { return }
         
@@ -260,6 +319,7 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Scrobbles the current track to Last.fm
     private func scrobbleCurrentTrack() {
         guard let track = currentTrack else { return }
         
@@ -274,6 +334,7 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Checks Last.fm authentication status and updates UI accordingly
     private func checkLastFMAuth() {
         if let sessionKey = lastFMService.getStoredSessionKey(),
            !sessionKey.isEmpty {
@@ -290,6 +351,7 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Fetches user information from Last.fm
     @MainActor
     func fetchUserInfo() async {
         do {
@@ -300,6 +362,7 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Signs out the current user and resets application state
     func signOut() {
         // First clear all sheets
         showSettings = false
@@ -323,7 +386,10 @@ class AppState: ObservableObject {
         currentTrackIndex = 0
     }
     
+    // MARK: - Preview Helpers
+    
     #if DEBUG
+    /// Convenience initializer for previews with an optional track
     convenience init(previewTrack: Track? = nil) {
         self.init()
         if let track = previewTrack {
@@ -332,7 +398,7 @@ class AppState: ObservableObject {
         }
     }
     
-    // MARK: - Preview Helpers
+    /// Creates a preview state with sample tracks
     static var previewWithTracks: AppState {
         let state = AppState()
         state.tracks = [
@@ -347,7 +413,9 @@ class AppState: ObservableObject {
     }
     #endif
     
-    // Helper method to update currentTrackIndex based on sorted position
+    // MARK: - Track Management
+    
+    /// Updates the current track index based on the track's position
     private func updateCurrentTrackIndex(for track: Track) {
         let sortedTracks = tracks.sorted { $0.position < $1.position }
         if let index = sortedTracks.firstIndex(where: { $0.position == track.position }) {
@@ -355,7 +423,7 @@ class AppState: ObservableObject {
         }
     }
     
-    // Update this method to handle track selection
+    /// Selects and starts playing a specific track
     func selectAndPlayTrack(_ track: Track) {
         guard isAuthenticated else {
             showLastFMAuth = true
@@ -370,6 +438,7 @@ class AppState: ObservableObject {
         updateNowPlaying()
     }
     
+    /// Creates tracks from a Discogs release, including Last.fm metadata
     public func createTracks(from release: DiscogsRelease) async {
         var newTracks: [Track] = []
         
@@ -377,7 +446,6 @@ class AppState: ObservableObject {
             var duration = track.duration
             var artworkURL: URL? = nil
             
-            // Fetch artwork and duration from Last.fm
             do {
                 let albumInfo = try await LastFMService.shared.getAlbumInfo(artist: release.artists.first?.name ?? "", album: release.title)
                 if let images = albumInfo.images {
@@ -388,7 +456,6 @@ class AppState: ObservableObject {
                     }
                 }
                 
-                // Fetch duration from Last.fm
                 if let lastFmTrack = albumInfo.tracks.first(where: { $0.name == track.title }),
                    let durationStr = lastFmTrack.duration,
                    let durationSeconds = Int(durationStr) {
@@ -400,12 +467,10 @@ class AppState: ObservableObject {
                 print("Failed to get album info from Last.fm: \(error.localizedDescription)")
             }
             
-            // Fallback to "3:00" if no duration is available
             if duration == nil || duration?.isEmpty == true {
                 duration = "3:00"
             }
             
-            // Fallback to Discogs artwork if Last.fm artwork is not available
             if artworkURL == nil {
                 artworkURL = URL(string: release.images?.first?.uri ?? "")
             }
@@ -428,16 +493,15 @@ class AppState: ObservableObject {
         }
     }
     
+    /// Loads a Discogs release into the player
     func loadRelease(_ release: DiscogsRelease) {
         guard isAuthenticated else {
             showLastFMAuth = true
             return
         }
         
-        // Clear existing tracks
         tracks.removeAll()
         
-        // Create tracks from release
         for track in release.tracklist {
             let newTrack = Track(
                 position: track.position,
@@ -450,16 +514,13 @@ class AppState: ObservableObject {
             tracks.append(newTrack)
         }
         
-        // Sort tracks by position
         tracks.sort { $0.position < $1.position }
         
-        // Set initial track
         if let firstTrack = tracks.first {
             currentTrack = firstTrack
             currentTrackIndex = 0
         }
         
-        // Reset playback state
         isPlaying = false
         currentPlaybackSeconds = 0
         shouldScrobble = true
@@ -467,25 +528,34 @@ class AppState: ObservableObject {
         print("✅ Loaded release: \(release.title) with \(tracks.count) tracks")
     }
     
+    /// Toggles the visibility of the main window
     func toggleWindowVisibility() {
         windowVisible.toggle()
         showPlayer = windowVisible
         print("🔄 Window visibility toggled: \(windowVisible ? "visible" : "hidden")")
     }
     
+    // MARK: - Computed Properties
+    
+    /// Current playback progress as a percentage
     var progress: Double {
         guard duration > 0 else { return 0 }
         return currentSeconds / duration
     }
     
+    /// Whether the previous track button should be enabled
     var canPlayPrevious: Bool {
         currentTrackIndex > 0
     }
     
+    /// Whether the next track button should be enabled
     var canPlayNext: Bool {
         currentTrackIndex < tracks.count - 1
     }
     
+    // MARK: - Notifications
+    
+    /// Sends a notification when a track is scrobbled
     private func sendScrobbleNotification(for track: Track) {
         guard showNotifications else { return }
         

@@ -1,7 +1,11 @@
 import Foundation
 import Security
 
+/// Helper enum providing methods to securely store and retrieve Last.fm session keys in the system Keychain
 enum KeychainHelper {
+    /// Saves the Last.fm session key to the system Keychain
+    /// - Parameter key: The session key string to be stored
+    /// This method first removes any existing key before saving the new one to prevent duplicates
     static func saveLastFMSessionKey(_ key: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -20,6 +24,8 @@ enum KeychainHelper {
         }
     }
     
+    /// Retrieves the stored Last.fm session key from the system Keychain
+    /// - Returns: The session key as a String if found, nil otherwise
     static func getLastFMSessionKey() -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -39,6 +45,8 @@ enum KeychainHelper {
         return nil
     }
     
+    /// Removes the Last.fm session key from the system Keychain
+    /// This method is typically called during logout or when resetting the application state
     static func deleteLastFMSessionKey() {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
