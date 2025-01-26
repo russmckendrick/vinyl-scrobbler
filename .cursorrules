@@ -3,60 +3,59 @@ You are an expert in Swift, SwiftUI, and macOS development.
 You are writting this application with macos in mind and you are useing pure SwiftUI and not UIKit, you will not mix SwiftUI and UIKit.
 
 Code Style and Structure
-	•	Write concise, maintainable Swift code with clear examples.
-	•	Use the latest (August/September 2024) SwiftUI features and best practices.
-	•	Follow the SwiftUI declarative syntax style; avoid imperative patterns.
-	•	Use reusable components and modifiers to minimize code duplication.
-	•	File structure:
-		•	App: Main application files.
-		•	Views: Exported components organized into sections (Home, Profile).
-		•	Shared: Reusable components, modifiers, and utilities.
-		•	Models: Data models.
-		•	ViewModels: Business logic tied to specific views.
-		•	Services: Network for API requests and Persistence for local storage.
-		•	Utilities: Extensions, constants, and helpers.
+- Write concise, maintainable Swift code with clear examples.
+- Use the latest (August/September 2024) SwiftUI features and best practices.
+- Follow the SwiftUI declarative syntax style; avoid imperative patterns.
+- Use reusable components and modifiers to minimize code duplication.
+- File structure:
+	- App: Main application files.
+	- Views: Exported components organized into sections (Home, Profile).
+	- Shared: Reusable components, modifiers, and utilities.
+	- Models: Data models.
+	- ViewModels: Business logic tied to specific views.
+	- Services: Network for API requests and Persistence for local storage.
+	- Utilities: Extensions, constants, and helpers.
 
 Naming Conventions
-	•	Use PascalCase for Swift types and methods (e.g., HomeView, loadData()).
-	•	Prefer descriptive names with auxiliary verbs (e.g., isFetching, hasError).
-	•	Use camelCase for variables and constants (e.g., hoverCursor, userData).
-	•	Favor extensions over helpers for SwiftUI modifiers.
+- Use PascalCase for Swift types and methods (e.g., HomeView, loadData()).
+- Prefer descriptive names with auxiliary verbs (e.g., isFetching, hasError).
+- Use camelCase for variables and constants (e.g., hoverCursor, userData).
+- Favor extensions over helpers for SwiftUI modifiers.
 
 SwiftUI-Specific Usage
-	•	Use SwiftUI for all UI components and avoid UIKit where possible.
-	•	Use built-in macOS-specific SwiftUI components like NavigationSplitView, Sidebar, and Toolbar.
-	•	Prefer ObservableObject and State for managing state.
-	•	Use SwiftUI's built-in animations and transitions for smooth UI interactions.
-	•	Use windowStyle() and windowToolbarStyle() to customize the window.
-	•	Use SF Symbols for consistent icons.
-	•	Use windowGroup to define the main entry point for the application.
+- Use SwiftUI for all UI components and avoid UIKit where possible.
+- Use built-in macOS-specific SwiftUI components like NavigationSplitView, Sidebar, and Toolbar.
+- Prefer ObservableObject and State for managing state.
+- Use SwiftUI's built-in animations and transitions for smooth UI interactions.
+- Use windowStyle() and windowToolbarStyle() to customize the window.
+- Use SF Symbols for consistent icons.
+- Use windowGroup to define the main entry point for the application.
 
 Syntax and Formatting
-	•	Use consistent indentation (4 spaces).
-	•	Retain comments to clarify complex code or intent.
-	•	Avoid redundant code; use SwiftUI’s modifiers for concise syntax.
-	•	Use .animation() modifiers to handle animations and transitions smoothly.
+- Use consistent indentation (4 spaces).
+- Retain comments to clarify complex code or intent.
+- Avoid redundant code; use SwiftUI’s modifiers for concise syntax.
+- Use .animation() modifiers to handle animations and transitions smoothly.
 
 UI and Styling
-	•	Design for macOS using:
-		•	List for data display.
-		•	NavigationSplitView and Sidebar for navigation.
-		•	SF Symbols for consistent icons.
-		•	Menu for contextual interactions.
-		•	Use macOS-specific features like:
-		•	onHover for hover states and cursor changes.
-		•	keyboardShortcut for productivity features.
-		•	Customize windows using .windowToolbarStyle() and .windowStyle().
+- Design for macOS using:
+	- List for data display.
+	- NavigationSplitView and Sidebar for navigation.
+	- SF Symbols for consistent icons.
+	- Menu for contextual interactions.
+	- Use macOS-specific features like:
+	- onHover for hover states and cursor changes.
+	- keyboardShortcut for productivity features.
+	- Customize windows using .windowToolbarStyle() and .windowStyle().
 
 Performance Optimization
-	•	Use lazy loading for resources like images and data-heavy components.
-	•	Prefer lightweight ObservableObject instances for state management.
-	•	Optimize for dynamic layouts using GeometryReader.
-	•	Minimize performance overhead by avoiding complex onAppear logic.
+- Use lazy loading for resources like images and data-heavy components.
+- Prefer lightweight ObservableObject instances for state management.
+- Optimize for dynamic layouts using GeometryReader.
+- Minimize performance overhead by avoiding complex onAppear logic.
 
 Key Conventions
-	•	Design for macOS-first experiences:
-	•	Use trackpad and mouse support (onHover).
-	•	Implement keyboard shortcuts where applicable.
-	•	Avoid referencing iOS components or paradigms.
-	•	Follow SwiftUI documentation for macOS layouts, state management, and system integrations.
+- Design for macOS-first experiences:
+- Use trackpad and mouse support (onHover).
+- Avoid referencing iOS components or paradigms.
+- Follow SwiftUI documentation for macOS layouts, state management, and system integrations.

@@ -37,6 +37,7 @@ struct DiscogsResultRow: View {
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .blur(radius: appState.blurArtwork ? 20 : 0)
             } placeholder: {
                 Image(systemName: "music.note")
                     .foregroundStyle(appState.currentTheme.foreground.secondary)
@@ -45,6 +46,7 @@ struct DiscogsResultRow: View {
             .frame(width: 50, height: 50)
             .cornerRadius(4)
             .background(appState.currentTheme.background.secondary.opacity(0.1))
+            .animation(.easeInOut, value: appState.blurArtwork)
             
             // Release information stack
             VStack(alignment: .leading, spacing: 4) {
