@@ -432,6 +432,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Vinyl Scrobbler";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "This app uses Apple Music to enrich the player experience.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app uses the microphone to identify and scrobble tracks using Shazam.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -465,6 +466,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Vinyl Scrobbler";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "This app uses Apple Music to enrich the player experience.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app uses the microphone to identify and scrobble tracks using Shazam.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;

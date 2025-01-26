@@ -507,76 +507,132 @@ class AppState: ObservableObject {
         }
     }
     
-    /// Updates track durations with Last.fm data after initial load
+    /// Updates track metadata after initial load
+    /// Flow:
+    /// 1. Artwork:
+    ///    - Try Apple Music first (highest quality)
+    ///    - If not found, try Last.fm
+    ///    - If not found, use Discogs artwork
+    /// 2. Track Durations:
+    ///    - Use Discogs duration if available
+    ///    - If not available, try Last.fm duration
+    ///    - If neither available, default to 3:00
     private func updateTracksWithLastFMDurations(release: DiscogsRelease) async {
         guard let artist = release.artists.first?.name else { return }
         
-        print("🔄 Fetching Last.fm durations for \(release.title)")
+        print("🔄 Fetching metadata for \(release.title)")
         
-        do {
-            let lastFmAlbumInfo = try await LastFMService.shared.getAlbumInfo(
-                artist: artist,
-                album: release.title
-            )
-            print("✅ Got Last.fm album info with \(lastFmAlbumInfo.tracks.count) tracks")
-            
-            // Get the best quality LastFM artwork URL
-            var artworkURL: URL? = nil
-            if let images = lastFmAlbumInfo.images {
-                if let extraLargeImage = images.first(where: { $0.size == "extralarge" }),
-                   let url = URL(string: extraLargeImage.url) {
-                    artworkURL = url
-                    print("✅ Using Last.fm extra large artwork")
-                } else if let largeImage = images.first(where: { $0.size == "large" }),
-                          let url = URL(string: largeImage.url) {
-                    artworkURL = url
-                    print("✅ Using Last.fm large artwork")
-                }
-            }
-            
-            // Fallback to Discogs artwork if no LastFM artwork found
-            if artworkURL == nil, 
-               let firstImage = release.images?.first,
-               let url = URL(string: firstImage.uri) {
-                artworkURL = url
-                print("ℹ️ No Last.fm artwork found, using Discogs artwork")
-            }
-            
-            // Update existing tracks with Last.fm durations and artwork
-            for (index, track) in tracks.enumerated() {
-                if let matchingLastFmTrack = lastFmAlbumInfo.tracks.first(where: { $0.name.lowercased() == track.title.lowercased() }) {
-                    if let duration = matchingLastFmTrack.duration {
-                        tracks[index] = Track(
-                            position: track.position,
-                            title: track.title,
-                            duration: duration,
-                            artist: track.artist,
-                            album: track.album,
-                            artworkURL: artworkURL
-                        )
-                        print("✅ Updated duration for '\(track.title)' with Last.fm duration: \(duration)")
-                    }
-                } else {
-                    // Update artwork even if no duration match found
+        // Function to update all tracks with new artwork
+        @Sendable func updateTracksWithArtwork(_ url: URL) async {
+            await MainActor.run {
+                for (index, track) in tracks.enumerated() {
                     tracks[index] = Track(
                         position: track.position,
                         title: track.title,
                         duration: track.duration,
                         artist: track.artist,
                         album: track.album,
-                        artworkURL: artworkURL
+                        artworkURL: url
                     )
                 }
+                // Update current track if needed
+                if let currentIndex = tracks.firstIndex(where: { $0.position == currentTrack?.position }) {
+                    currentTrack = tracks[currentIndex]
+                }
             }
-            
-            // Update current track if needed
-            if let currentIndex = tracks.firstIndex(where: { $0.position == currentTrack?.position }) {
-                currentTrack = tracks[currentIndex]
-            }
-            
-        } catch {
-            print("❌ Failed to get Last.fm album info: \(error.localizedDescription)")
         }
+        
+        // Start artwork and duration updates in parallel
+        async let artworkResult: Void = {
+            // Try Apple Music first
+            do {
+                if let url = try await AppleMusicService.shared.getAlbumArtwork(
+                    artist: artist,
+                    album: release.title
+                ) {
+                    print("✅ Using Apple Music high-quality artwork")
+                    await updateTracksWithArtwork(url)
+                    return
+                }
+            } catch {
+                print("⚠️ Failed to get Apple Music artwork: \(error.localizedDescription)")
+            }
+            
+            // Try Last.fm artwork
+            do {
+                let lastFmAlbumInfo = try await LastFMService.shared.getAlbumInfo(
+                    artist: artist,
+                    album: release.title
+                )
+                
+                if let images = lastFmAlbumInfo.images {
+                    if let extraLargeImage = images.first(where: { $0.size == "extralarge" }),
+                       let url = URL(string: extraLargeImage.url) {
+                        print("✅ Using Last.fm extra large artwork")
+                        await updateTracksWithArtwork(url)
+                        return
+                    } else if let largeImage = images.first(where: { $0.size == "large" }),
+                              let url = URL(string: largeImage.url) {
+                        print("✅ Using Last.fm large artwork")
+                        await updateTracksWithArtwork(url)
+                        return
+                    }
+                }
+            } catch {
+                print("⚠️ Failed to get Last.fm artwork: \(error.localizedDescription)")
+            }
+            
+            // Fallback to Discogs artwork
+            if let firstImage = release.images?.first,
+               let url = URL(string: firstImage.uri) {
+                print("ℹ️ Using Discogs artwork")
+                await updateTracksWithArtwork(url)
+            }
+        }()
+        
+        async let durationsResult: Void = {
+            do {
+                let lastFmAlbumInfo = try await LastFMService.shared.getAlbumInfo(
+                    artist: artist,
+                    album: release.title
+                )
+                
+                await MainActor.run {
+                    // Update durations from Last.fm
+                    for (index, track) in tracks.enumerated() {
+                        var finalDuration = track.duration
+                        if finalDuration == nil || finalDuration == "3:00" {
+                            if let lastFmTrack = lastFmAlbumInfo.tracks.first(where: { $0.name.lowercased() == track.title.lowercased() }),
+                               let duration = lastFmTrack.duration {
+                                finalDuration = duration
+                                print("✅ Updated duration for '\(track.title)' with Last.fm duration: \(duration)")
+                                
+                                tracks[index] = Track(
+                                    position: track.position,
+                                    title: track.title,
+                                    duration: finalDuration,
+                                    artist: track.artist,
+                                    album: track.album,
+                                    artworkURL: track.artworkURL
+                                )
+                            }
+                        } else {
+                            print("ℹ️ Using Discogs duration for '\(track.title)': \(finalDuration ?? "unknown")")
+                        }
+                    }
+                    
+                    // Update current track if needed
+                    if let currentIndex = tracks.firstIndex(where: { $0.position == currentTrack?.position }) {
+                        currentTrack = tracks[currentIndex]
+                    }
+                }
+            } catch {
+                print("❌ Failed to get Last.fm durations: \(error.localizedDescription)")
+            }
+        }()
+        
+        // Wait for both operations to complete
+        _ = await (artworkResult, durationsResult)
     }
     
     /// Toggles the visibility of the main window
