@@ -226,10 +226,21 @@ private struct AccountView: View {
                 .padding(.top, 8)
                 
                 // Sign up link
-                Link("Don't have an account? Sign up at Last.fm", destination: URL(string: "https://www.last.fm")!)
-                    .font(.caption)
-                    .foregroundStyle(appState.currentTheme.foreground.secondary)
-                    .padding(.top, 8)
+                Button {
+                    Task {
+                        do {
+                            try await WebAuthenticationService.shared.presentWebAuth(url: URL(string: "https://www.last.fm/join")!)
+                        } catch {
+                            print("Failed to present web auth: \(error)")
+                        }
+                    }
+                } label: {
+                    Text("Don't have an account? Sign up at Last.fm")
+                        .font(.caption)
+                        .foregroundStyle(appState.currentTheme.foreground.secondary)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 8)
             }
         }
         .padding(24)
